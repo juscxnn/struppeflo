@@ -5,6 +5,7 @@ import { anthropicClient } from "./ai/anthropicProvider";
 import { getAIConfig, getProviderKey, modelProvider } from "./aiConfig";
 import { copyText } from "./clipboard";
 import { getModel, type ProviderId } from "./ai/models";
+import type { Template } from "./templates/outputSchema";
 import type { Board } from "./types";
 
 export const DEFAULT_RUN_INSTRUCTION =
@@ -51,7 +52,9 @@ How to work:
 Output:
 - Lead with the deliverable. No preamble about what you are going to do.
 - Plain markdown, concrete and specific.
-- If you made assumptions, list them briefly at the end under "Assumptions".`;
+- If an <output_format> block is present, follow its section skeleton exactly, headings verbatim.
+- If you made assumptions, list them briefly at the end under "Assumptions".
+- Before finishing, re-read the instructions once and verify every required section exists and every task on the board is reflected somewhere. Fix gaps before ending.`;
   }
   if (provider === "openai") {
     return `You execute plans compiled from a spatial planning board.
@@ -78,22 +81,61 @@ For each <open_question>, state a one-line assumption and continue. Lead with th
 You may answer in English or in the language the user wrote the instructions in. Model: ${model}.`;
 }
 
-export function buildRunPrompt(board: Board, instruction: string): string {
+const KIND_HINT: Record<string, string> = {
+  heading: "a short titled statement",
+  paragraph: "tight prose, one to three paragraphs",
+  checklist:
+    'a markdown checklist — one "- [ ]" item per action, each concrete enough to execute without asking questions',
+  timeline: "an ordered list of steps, each with a timeframe",
+  table: "a markdown table with a header row",
+};
+
+/**
+ * When the board came from a template with declared zones, tell the model the
+ * EXACT deliverable skeleton. The structured renderer matches sections by
+ * heading, so this is what makes per-zone output parsing reliable instead of
+ * best-effort — and it is the single biggest output-quality lever we have.
+ */
+export function outputFormatBlock(
+  template: Pick<Template, "zones"> | null | undefined,
+): string {
+  if (!template || template.zones.length === 0) return "";
+  const lines = template.zones.map(
+    (z) =>
+      `## ${z.name} — ${KIND_HINT[z.outputKind] ?? "concise markdown"}`,
+  );
+  return (
+    `\n<output_format>\nStructure the response with exactly these markdown sections, in this order, using each heading verbatim:\n` +
+    `${lines.join("\n")}\n` +
+    `Do not add other top-level sections. Do not restate the board.\n</output_format>`
+  );
+}
+
+export function buildRunPrompt(
+  board: Board,
+  instruction: string,
+  template?: Pick<Template, "zones"> | null,
+): string {
   const { markdown } = compileBoard(board);
-  return `${markdown}\n\n<instructions>\n${instruction.trim() || DEFAULT_RUN_INSTRUCTION}\n</instructions>`;
+  return `${markdown}\n\n<instructions>\n${instruction.trim() || DEFAULT_RUN_INSTRUCTION}\n</instructions>${outputFormatBlock(template)}`;
 }
 
 /**
  * The handoff to hosted chat UIs can't set a system prompt, so fold a one-line
  * version of the contract into the user message instead.
  */
-export function buildHandoffPrompt(board: Board, instruction: string): string {
+export function buildHandoffPrompt(
+  board: Board,
+  instruction: string,
+  template?: Pick<Template, "zones"> | null,
+): string {
   const { markdown } = compileBoard(board);
   const task = instruction.trim() || DEFAULT_RUN_INSTRUCTION;
   return (
     `${markdown}\n\n<instructions>\n${task}\n` +
     `Work through the sections in the suggested execution order. Produce the deliverable itself, not a plan. ` +
-    `For each open question, state a sensible assumption in one line and continue.\n</instructions>`
+    `For each open question, state a sensible assumption in one line and continue.\n</instructions>` +
+    outputFormatBlock(template)
   );
 }
 

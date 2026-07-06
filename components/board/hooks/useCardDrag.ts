@@ -5,17 +5,13 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useToast } from "@/components/ui/Toast";
-import {
-  DRAG_THRESHOLD_PX,
-  SNAP_ALIGN_PX,
-  SNAP_GRID,
-} from "@/lib/constants";
+import { DRAG_THRESHOLD_PX, SNAP_ALIGN_PX } from "@/lib/constants";
 import { anchorsFor, bezierBetween, clamp } from "@/lib/geometry";
 import { divisionForCard } from "@/lib/store/boardStore";
 import {
   cardRectsExcluding,
-  snapRectToCards,
-  snapToGrid,
+  snapRectWithGuides,
+  type SnapGuide,
 } from "@/lib/snap";
 import type { ID, Rect } from "@/lib/types";
 
@@ -43,7 +39,8 @@ export function useCardDrag(cardId: ID) {
     raf: 0,
     snapshot: null as DragSnapshot | null,
     hoverDivision: null as ID | null,
-    shiftDuringDrag: false,
+    snapDisabled: false,
+    guides: [] as SnapGuide[],
   });
 
   return useMemo(() => {
@@ -56,11 +53,8 @@ export function useCardDrag(cardId: ID) {
       const dx = (s.current.latestClient.x - s.current.startClient.x) / scale;
       const dy = (s.current.latestClient.y - s.current.startClient.y) / scale;
       const bounds = ctx.policy.bounds;
-      const snapEnabled = !s.current.shiftDuringDrag;
       const board = ctx.store.getState().boards[ctx.boardId];
-      const candidates = snapEnabled
-        ? cardRectsExcluding(board ?? { cards: {} }, new Set(snap.ids))
-        : [];
+      const snapEnabled = !s.current.snapDisabled && !!board;
 
       // Compute tentative positions first.
       const tentative = new Map<ID, { x: number; y: number }>();
@@ -70,21 +64,16 @@ export function useCardDrag(cardId: ID) {
         tentative.set(id, { x: r.x + dx, y: r.y + dy });
       }
 
-      // Pick a reference card = leftmost-topmost of the dragged set. The snap
+      // Reference card = leftmost-topmost of the dragged set. The snap
       // decision is computed ONCE for this card, then applied rigidly to the
-      // whole group. This is what keeps the group's internal layout intact
-      // while still snapping to grid + aligning to other cards.
+      // whole group, so the group's internal layout never deforms.
       let refId: ID | null = null;
       let refX = 0;
       let refY = 0;
       for (const id of snap.ids) {
         const t = tentative.get(id);
         if (!t) continue;
-        if (
-          refId === null ||
-          t.x < refX ||
-          (t.x === refX && t.y < refY)
-        ) {
+        if (refId === null || t.x < refX || (t.x === refX && t.y < refY)) {
           refId = id;
           refX = t.x;
           refY = t.y;
@@ -92,20 +81,28 @@ export function useCardDrag(cardId: ID) {
       }
       if (refId === null) return null;
 
+      // Alignment-only snapping (no grid quantization — that made dragging
+      // feel steppy). Cards align to other cards AND zone edges. Threshold is
+      // constant in SCREEN pixels, so grabbiness is the same at every zoom.
       let snappedX = refX;
       let snappedY = refY;
+      s.current.guides = [];
       if (snapEnabled) {
-        snappedX = snapToGrid(snappedX, SNAP_GRID);
-        snappedY = snapToGrid(snappedY, SNAP_GRID);
+        const dragged = new Set(snap.ids);
+        const candidates: Rect[] = cardRectsExcluding(board, dragged);
+        for (const d of Object.values(board.divisions)) {
+          candidates.push({ x: d.x, y: d.y, w: d.w, h: d.h });
+        }
         const refRect = snap.start.get(refId);
-        if (refRect) {
-          const aligned = snapRectToCards(
-            { x: snappedX, y: snappedY, w: refRect.w, h: refRect.h },
+        if (refRect && candidates.length > 0) {
+          const result = snapRectWithGuides(
+            { x: refX, y: refY, w: refRect.w, h: refRect.h },
             candidates,
-            SNAP_ALIGN_PX,
+            SNAP_ALIGN_PX / scale,
           );
-          snappedX = aligned.x;
-          snappedY = aligned.y;
+          snappedX = result.x;
+          snappedY = result.y;
+          s.current.guides = result.guides;
         }
       }
 
@@ -128,6 +125,45 @@ export function useCardDrag(cardId: ID) {
       return out;
     };
 
+    const drawGuides = () => {
+      const g = ctx.guidesRef.current;
+      if (!g) return;
+      const scale = ctx.cameraRef.current.s;
+      const lineW = Math.max(1 / scale, 0.75);
+      const overshoot = 8 / scale;
+      const v = s.current.guides.find((x) => x.axis === "v");
+      const h = s.current.guides.find((x) => x.axis === "h");
+      if (g.v) {
+        if (v) {
+          g.v.style.display = "";
+          g.v.style.left = `${v.pos - lineW / 2}px`;
+          g.v.style.top = `${v.start - overshoot}px`;
+          g.v.style.width = `${lineW}px`;
+          g.v.style.height = `${v.end - v.start + overshoot * 2}px`;
+        } else {
+          g.v.style.display = "none";
+        }
+      }
+      if (g.h) {
+        if (h) {
+          g.h.style.display = "";
+          g.h.style.left = `${h.start - overshoot}px`;
+          g.h.style.top = `${h.pos - lineW / 2}px`;
+          g.h.style.width = `${h.end - h.start + overshoot * 2}px`;
+          g.h.style.height = `${lineW}px`;
+        } else {
+          g.h.style.display = "none";
+        }
+      }
+    };
+
+    const hideGuides = () => {
+      s.current.guides = [];
+      const g = ctx.guidesRef.current;
+      if (g?.v) g.v.style.display = "none";
+      if (g?.h) g.h.style.display = "none";
+    };
+
     const tick = () => {
       s.current.raf = 0;
       const snap = s.current.snapshot;
@@ -141,6 +177,7 @@ export function useCardDrag(cardId: ID) {
         el.style.transform = `translate3d(${r.x - start.x}px, ${r.y - start.y}px, 0)`;
         ctx.linkRegistry.notify(id, r);
       }
+      drawGuides();
       if (snap.ids.length === 1) {
         const r = rects.get(snap.ids[0]);
         if (r) {
@@ -223,6 +260,7 @@ export function useCardDrag(cardId: ID) {
       const target = ctx.proximity.finish();
       setDivisionHover(s.current.hoverDivision, false);
       s.current.hoverDivision = null;
+      hideGuides();
       cleanupVisuals();
       s.current.snapshot = null;
 
@@ -280,7 +318,7 @@ export function useCardDrag(cardId: ID) {
 
         s.current.active = true;
         s.current.moved = false;
-        s.current.shiftDuringDrag = false;
+        s.current.snapDisabled = false;
         s.current.startClient = { x: e.clientX, y: e.clientY };
         s.current.latestClient = { x: e.clientX, y: e.clientY };
         try {
@@ -293,7 +331,8 @@ export function useCardDrag(cardId: ID) {
 
       onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => {
         if (!s.current.active) return;
-        if (e.shiftKey) s.current.shiftDuringDrag = true;
+        // Live toggle: hold Shift to drag freely, release to snap again.
+        s.current.snapDisabled = e.shiftKey;
         s.current.latestClient = { x: e.clientX, y: e.clientY };
         if (!s.current.moved) {
           const dx = e.clientX - s.current.startClient.x;

@@ -116,7 +116,7 @@ export function RunPanel() {
   const modelLabel = modelSpec?.label ?? aiConfig.model;
 
   const run = async () => {
-    const prompt = buildRunPrompt(board, instruction);
+    const prompt = buildRunPrompt(board, instruction, template);
     const controller = new AbortController();
     abortRef.current = controller;
     setState("running");
@@ -202,7 +202,7 @@ export function RunPanel() {
   const stop = () => abortRef.current?.abort();
 
   const handOff = async () => {
-    const prompt = buildHandoffPrompt(board, instruction);
+    const prompt = buildHandoffPrompt(board, instruction, template);
     track("open_in_claude", {
       cards: cardCount,
       provider,

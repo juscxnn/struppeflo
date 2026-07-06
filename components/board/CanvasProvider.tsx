@@ -74,6 +74,11 @@ export interface GhostRefs {
   chip: HTMLDivElement | null;
 }
 
+export interface GuideRefs {
+  v: HTMLDivElement | null;
+  h: HTMLDivElement | null;
+}
+
 /**
  * Runs inside the drag rAF for single-card drags. Finds the nearest unlinked
  * card within the edge-gap threshold, arms after a continuous dwell, applies
@@ -196,6 +201,8 @@ export interface CanvasContextValue {
   linkRegistry: LinkRegistry;
   proximity: ProximityEngine;
   ghostRef: RefObject<GhostRefs>;
+  /** Alignment guide line elements, driven imperatively by the drag loop. */
+  guidesRef: RefObject<GuideRefs>;
   /** Set by Board — opens the link type popover for a link id. */
   requestLinkPopover: (linkId: ID, screen: { x: number; y: number }) => void;
   history: { pause: () => void; resume: () => void };
@@ -241,6 +248,7 @@ export function CanvasProvider({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const worldRef = useRef<HTMLDivElement | null>(null);
   const ghostRef = useRef<GhostRefs>({ path: null, chip: null });
+  const guidesRef = useRef<GuideRefs>({ v: null, h: null });
   const perfByCountRef = useRef(false);
 
   const value = useMemo<CanvasContextValue>(() => {
@@ -350,6 +358,7 @@ export function CanvasProvider({
       linkRegistry,
       proximity,
       ghostRef,
+      guidesRef,
       requestLinkPopover,
       history: history ?? { pause: () => {}, resume: () => {} },
       perfByCountRef,

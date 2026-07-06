@@ -370,6 +370,23 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
           ))}
         </div>
         <SuggestionLayer />
+        {/* Alignment guides (world space, driven by the drag loop). */}
+        <div
+          ref={(el) => {
+            ctx.guidesRef.current.v = el;
+          }}
+          aria-hidden
+          className="absolute top-0 left-0 pointer-events-none z-[9996]"
+          style={{ display: "none", background: "var(--accent)" }}
+        />
+        <div
+          ref={(el) => {
+            ctx.guidesRef.current.h = el;
+          }}
+          aria-hidden
+          className="absolute top-0 left-0 pointer-events-none z-[9996]"
+          style={{ display: "none", background: "var(--accent)" }}
+        />
         {/* Proximity-link chip (world space, imperatively positioned). */}
         <div
           ref={(el) => {

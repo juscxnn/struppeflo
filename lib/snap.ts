@@ -156,3 +156,118 @@ export function cardRectsExcluding(
   }
   return out;
 }
+
+export interface SnapGuide {
+  axis: "v" | "h";
+  /** World x (vertical guide) or world y (horizontal guide). */
+  pos: number;
+  start: number;
+  end: number;
+}
+
+export interface SnapWithGuidesResult {
+  x: number;
+  y: number;
+  guides: SnapGuide[];
+}
+
+/**
+ * Alignment-only snapping with guide geometry: snaps the rect's edges and
+ * centers to the candidates' edges and centers (both axes independently,
+ * Figma-style) and returns the guide lines to render — spanning the dragged
+ * rect and every candidate that shares the aligned coordinate. Threshold is
+ * in world units; pass a screen-px threshold divided by the camera scale so
+ * grabbiness is consistent at every zoom.
+ */
+export function snapRectWithGuides(
+  rect: Rect,
+  candidates: ReadonlyArray<Rect>,
+  threshold: number,
+): SnapWithGuidesResult {
+  if (candidates.length === 0 || threshold <= 0) {
+    return { x: rect.x, y: rect.y, guides: [] };
+  }
+
+  const myX = [rect.x, rect.x + rect.w / 2, rect.x + rect.w];
+  const myY = [rect.y, rect.y + rect.h / 2, rect.y + rect.h];
+
+  let bestDx = 0;
+  let bestDxAbs = Infinity;
+  let bestDy = 0;
+  let bestDyAbs = Infinity;
+
+  for (const c of candidates) {
+    const cx = [c.x, c.x + c.w / 2, c.x + c.w];
+    const cy = [c.y, c.y + c.h / 2, c.y + c.h];
+    for (const m of myX) {
+      for (const t of cx) {
+        const d = t - m;
+        const a = Math.abs(d);
+        if (a < bestDxAbs) {
+          bestDxAbs = a;
+          bestDx = d;
+        }
+      }
+    }
+    for (const m of myY) {
+      for (const t of cy) {
+        const d = t - m;
+        const a = Math.abs(d);
+        if (a < bestDyAbs) {
+          bestDyAbs = a;
+          bestDy = d;
+        }
+      }
+    }
+  }
+
+  const snapX = bestDxAbs <= threshold;
+  const snapY = bestDyAbs <= threshold;
+  const x = rect.x + (snapX ? bestDx : 0);
+  const y = rect.y + (snapY ? bestDy : 0);
+
+  const guides: SnapGuide[] = [];
+  const EPS = 0.5;
+
+  if (snapX) {
+    const sx = [x, x + rect.w / 2, x + rect.w];
+    let pos: number | null = null;
+    let lo = y;
+    let hi = y + rect.h;
+    for (const c of candidates) {
+      const cx = [c.x, c.x + c.w / 2, c.x + c.w];
+      for (const m of sx) {
+        for (const t of cx) {
+          if (Math.abs(t - m) <= EPS) {
+            pos = t;
+            lo = Math.min(lo, c.y);
+            hi = Math.max(hi, c.y + c.h);
+          }
+        }
+      }
+    }
+    if (pos !== null) guides.push({ axis: "v", pos, start: lo, end: hi });
+  }
+
+  if (snapY) {
+    const sy = [y, y + rect.h / 2, y + rect.h];
+    let pos: number | null = null;
+    let lo = x;
+    let hi = x + rect.w;
+    for (const c of candidates) {
+      const cy = [c.y, c.y + c.h / 2, c.y + c.h];
+      for (const m of sy) {
+        for (const t of cy) {
+          if (Math.abs(t - m) <= EPS) {
+            pos = t;
+            lo = Math.min(lo, c.x);
+            hi = Math.max(hi, c.x + c.w);
+          }
+        }
+      }
+    }
+    if (pos !== null) guides.push({ axis: "h", pos, start: lo, end: hi });
+  }
+
+  return { x, y, guides };
+}

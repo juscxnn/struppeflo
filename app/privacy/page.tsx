@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Privacy — Struppëflo",
   description:
-    "What Struppëflo collects by default, what it can collect if you opt in, and what it never sees.",
+    "What Struppëflo collects (anonymous structure and usage, never content), and what it never sees.",
 };
 
 const TIERS = [
@@ -24,8 +24,9 @@ const TIERS = [
     ],
   },
   {
-    name: "Tier 2 — Opt-in, structural only",
-    subtitle: "Toggle in Help → Help improve Struppëflo. Default off. Never collects titles, bodies, or prompts.",
+    name: "Tier 2 — Structural only, on by default",
+    subtitle:
+      "One-click off: Help → Help improve Struppëflo. You see a notice the first time you use the studio. Never collects titles, bodies, or prompts.",
     rows: [
       ["Board structure", "Card type histogram, zone count, link type histogram, dependency depth. Plus a sha256 fingerprint of the structural shape (not the text)."],
       ["Edit stream", "Each add/edit/remove event on cards, links, zones — with ms since the previous edit. Struggle signal: lots of edits before a run often means the prompt was hard to compose."],

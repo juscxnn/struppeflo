@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * Opt-in structural telemetry — the dataset an acquirer (or we) can use to
- * see what good prompt structure looks like at scale. Off by default.
+ * Structural telemetry — the dataset an acquirer (or we) can use to see what
+ * good prompt structure looks like at scale. ON by default with a first-run
+ * disclosure and a one-click opt-out (Help menu / privacy page): it is
+ * content-free by construction, so default-on is defensible — and a dataset
+ * that's off by default is no dataset at all.
  *
  * What gets sent (when the toggle is on):
  *
@@ -29,7 +32,8 @@ const listeners = new Set<() => void>();
 function loadEnabled(): boolean {
   if (cachedEnabled !== null) return cachedEnabled;
   try {
-    cachedEnabled = localStorage.getItem(STORAGE_KEY) === "1";
+    // Default ON; only an explicit "0" (user opted out) disables.
+    cachedEnabled = localStorage.getItem(STORAGE_KEY) !== "0";
   } catch {
     cachedEnabled = false;
   }
@@ -316,10 +320,16 @@ function dependencyDepth(board: Board): number {
     edges.get(l.to)!.push(l.from);
   }
   const memo = new Map<string, number>();
+  const visiting = new Set<string>();
   const visit = (id: string): number => {
     if (memo.has(id)) return memo.get(id)!;
+    // Dependency cycles are legal on the board — treat a back-edge as depth 0
+    // instead of recursing forever.
+    if (visiting.has(id)) return 0;
+    visiting.add(id);
     const parents = edges.get(id) ?? [];
     const d = parents.length === 0 ? 0 : 1 + Math.max(...parents.map(visit));
+    visiting.delete(id);
     memo.set(id, d);
     return d;
   };

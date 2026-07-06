@@ -31,6 +31,7 @@ import {
 } from "@/lib/constants";
 import { boardHistory, useBoardStore } from "@/lib/store/boardStore";
 import { onStorageIssue } from "@/lib/store/storage";
+import { setTelemetryEnabled, telemetryEnabled } from "@/lib/telemetry";
 import { useUIStore } from "@/lib/store/uiStore";
 import { TEMPLATES, type TemplateId } from "@/lib/templates";
 import { applyTemplate } from "@/lib/workspaceOps";
@@ -61,6 +62,29 @@ export function StudioShell() {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  // One-time disclosure for default-on structural telemetry — shown once,
+  // with the opt-out right in the toast. Honesty is the feature.
+  useEffect(() => {
+    if (!mounted) return;
+    const NOTICE_KEY = "struppeflo-telemetry-notice";
+    try {
+      if (localStorage.getItem(NOTICE_KEY) || !telemetryEnabled()) return;
+      localStorage.setItem(NOTICE_KEY, "1");
+      toast({
+        message:
+          "Anonymous structure stats help improve Struppëflo — never your text. Details on the privacy page.",
+        variant: "info",
+        sticky: true,
+        action: {
+          label: "Turn off",
+          onClick: () => setTelemetryEnabled(false),
+        },
+      });
+    } catch {
+      // Storage unavailable — nothing to disclose because nothing persists.
+    }
+  }, [mounted, toast]);
 
   useEffect(() => {
     const doExport = () => void commands.find((c) => c.id === "export")?.run();

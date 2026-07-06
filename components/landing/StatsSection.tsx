@@ -43,17 +43,9 @@ export function StatsSection() {
     };
   }, []);
 
-  if (!loaded) {
-    return (
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="glass rounded-xl px-6 py-5 grid grid-cols-3 gap-4 opacity-50">
-          <Placeholder />
-          <Placeholder />
-          <Placeholder />
-        </div>
-      </div>
-    );
-  }
+  // Zero-state counters read as a dead product. Render nothing until the
+  // numbers are real enough to help conversion instead of hurting it.
+  if (!loaded || !stats.configured || stats.users < 10) return null;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
@@ -64,9 +56,7 @@ export function StatsSection() {
           <Counter label="unique prompts" value={stats.outputs} />
         </div>
         <p className="mt-3 text-[11px] text-[var(--ink-faint)] text-center">
-          {stats.configured
-            ? "Live. Anonymous. Counts people who opted in to Help improve Struppëflo."
-            : "Counters turn on once people opt in to Help improve Struppëflo."}
+          Live, anonymous counts. No accounts, no tracking cookies.
         </p>
       </div>
     </div>
@@ -129,11 +119,3 @@ function formatCount(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
-function Placeholder() {
-  return (
-    <div className="text-center">
-      <div className="h-7 w-16 mx-auto rounded bg-[var(--glass)]" />
-      <div className="mt-2 h-3 w-32 mx-auto rounded bg-[var(--glass)]" />
-    </div>
-  );
-}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { useBoardStore } from "@/lib/store/boardStore";
 import { useUIStore } from "@/lib/store/uiStore";
@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/Toast";
 import {
   CloseIcon,
   CopyIcon,
+  DownloadIcon,
   KeyIcon,
   PlayIcon,
 } from "@/components/ui/icons";
@@ -42,6 +43,9 @@ import {
   reportRunQuality,
   reportRunStarted,
 } from "@/lib/sessionTracker";
+import { StructuredOutput } from "@/components/panels/StructuredOutput";
+import { deliverableToMarkdown, getTemplate } from "@/lib/templates";
+import type { BoardRun } from "@/lib/types";
 
 type RunState = "idle" | "running" | "done" | "error";
 
@@ -55,6 +59,7 @@ const STARTER_INSTRUCTIONS = [
 export function RunPanel() {
   const open = useUIStore((s) => s.runOpen);
   const board = useBoardStore((s) => s.boards[s.activeBoardId]);
+  const boardTemplates = useUIStore((s) => s.boardTemplates);
   const aiConfig = useSyncExternalStore(
     subscribeAIConfig,
     aiConfigSnapshot,
@@ -69,8 +74,9 @@ export function RunPanel() {
   const [showThinking, setShowThinking] = useState(false);
   const [error, setError] = useState("");
   const [rated, setRated] = useState<null | 1 | -1>(null);
+  const [lastRunId, setLastRunId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const outRef = useRef<HTMLPreElement | null>(null);
+  const outRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -85,6 +91,13 @@ export function RunPanel() {
       outRef.current.scrollTop = outRef.current.scrollHeight;
     }
   }, [textOutput, state]);
+
+  // Resolve the template for this board, if any.
+  const template = useMemo(() => {
+    if (!board) return null;
+    const tplId = boardTemplates[board.id];
+    return tplId ? getTemplate(tplId as never) ?? null : null;
+  }, [board, boardTemplates]);
 
   if (!open || !board) return null;
 
@@ -114,17 +127,21 @@ export function RunPanel() {
     const structure = computeBoardStructure(board, fp);
     sendTelemetry({ kind: "structure", structure });
     rememberRunPrompt(fp);
+
     const t0 = Date.now();
+    const collected: string[] = [];
     try {
       for await (const evt of streamRun(prompt, controller.signal)) {
         if (evt.kind === "text") {
+          collected.push(evt.delta);
           setTextOutput((prev) => prev + evt.delta);
         } else if (evt.kind === "thinking") {
           setThinkingOutput((prev) => prev + evt.delta);
         }
       }
-      setState("done");
+      const fullText = collected.join("");
       const durationMs = Date.now() - t0;
+      setState("done");
       track("run_completed", {
         cards: cardCount,
         provider,
@@ -136,11 +153,28 @@ export function RunPanel() {
         provider,
         model: aiConfig.model,
         prompt,
-        outputTokens: Math.ceil(textOutput.length / 4),
+        outputTokens: Math.ceil(fullText.length / 4),
         durationMs,
         status: "ok",
       });
       sendTelemetry({ kind: "run", run: outcome });
+
+      const runId = crypto.randomUUID();
+      const boardRun: BoardRun = {
+        id: runId,
+        at: Date.now(),
+        provider,
+        model: aiConfig.model,
+        promptFingerprint: fp,
+        inputTokens: outcome.inputTokens,
+        outputTokens: outcome.outputTokens,
+        durationMs,
+        status: "ok",
+        cards: cardCount,
+        output: fullText,
+      };
+      useBoardStore.getState().recordRun(board.id, boardRun);
+      setLastRunId(runId);
     } catch (e) {
       if (controller.signal.aborted) {
         setState(textOutput ? "done" : "idle");
@@ -264,15 +298,38 @@ export function RunPanel() {
       model: aiConfig.model,
     });
     reportRunQuality({ rating });
+    if (lastRunId) {
+      useBoardStore
+        .getState()
+        .rateRun(board.id, lastRunId, rating);
+    }
+  };
+
+  const exportDeliverable = async () => {
+    const baseText = template
+      ? deliverableToMarkdown(template.renderOutput(textOutput))
+      : textOutput;
+    const header = `# ${board.name}\nGenerated ${new Date().toLocaleString()}\n\n`;
+    const full = header + baseText;
+    if (await copyText(full)) {
+      toast({
+        message: "Deliverable copied to clipboard. Paste into Notion or anywhere.",
+        variant: "success",
+      });
+    } else {
+      toast({ message: "Couldn't access the clipboard.", variant: "error" });
+    }
   };
 
   return (
     <div
-      className="glass-strong absolute top-3 right-3 bottom-3 w-[420px]
+      className="glass-strong absolute top-3 right-3 bottom-3 w-[460px]
         max-w-[calc(100vw-24px)] z-40 rounded-xl flex flex-col fade-up"
     >
       <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
-        <h2 className="text-[14px] font-semibold tracking-tight">Run board</h2>
+        <h2 className="text-[14px] font-semibold tracking-tight">
+          {template ? template.name : "Run board"}
+        </h2>
         <span
           className="text-[11px] font-medium text-[var(--ink-faint)] rounded-md
             px-1.5 py-0.5 bg-[var(--glass)] border border-[var(--border)]"
@@ -329,10 +386,6 @@ export function RunPanel() {
             <KeyIcon size={14} />
             Connect your {PROVIDER_LABELS[provider]} key — run in-app
           </button>
-          <p className="text-[11.5px] leading-snug text-[var(--ink-faint)]">
-            With a key, runs stream right here and results land back on the
-            board. The key stays in this browser and talks only to the provider.
-          </p>
         </div>
       ) : (
         <>
@@ -387,7 +440,7 @@ export function RunPanel() {
                     items-center gap-1.5 text-[13px] font-semibold"
                 >
                   <PlayIcon size={13} />
-                  {state === "done" || state === "error" ? "Run again" : "Run"}
+                  {state === "done" || state === "error" ? "Re-run" : "Run"}
                 </button>
               )}
               <button
@@ -433,28 +486,39 @@ export function RunPanel() {
             </div>
           )}
 
-          <pre
+          <div
             ref={outRef}
-            className="thin-scroll flex-1 overflow-auto mx-2 mb-2 px-3 py-2
+            className="thin-scroll flex-1 overflow-auto mx-2 mb-2 px-3 py-3
               rounded-lg bg-[var(--glass)] border border-[var(--border)]
-              text-[12px] leading-relaxed font-sans whitespace-pre-wrap
-              text-[var(--ink)] select-text"
+              select-text"
           >
-            {textOutput ||
-              (state === "running"
-                ? "Thinking…"
-                : "The result streams here. Your board compiles into the prompt automatically — open the X-Ray (⌘.) to see exactly what gets sent.")}
-          </pre>
+            {textOutput ? (
+              <StructuredOutput
+                text={textOutput}
+                zones={template?.zones ?? []}
+                streaming={state === "running"}
+              />
+            ) : (
+              <div className="text-[12.5px] text-[var(--ink-faint)] italic">
+                {state === "running"
+                  ? "Thinking…"
+                  : template
+                    ? `Run to generate a structured ${template.name.toLowerCase()}.`
+                    : "The result streams here. Open the X-Ray (⌘.) to see exactly what gets sent."}
+              </div>
+            )}
+          </div>
 
           {state === "done" && (
             <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                onClick={addToBoard}
+                onClick={exportDeliverable}
                 className="btn-primary h-9 px-3.5 rounded-lg text-[12.5px]
-                  font-semibold"
+                  font-semibold inline-flex items-center gap-1.5"
               >
-                Add result to board
+                <DownloadIcon size={13} />
+                Copy deliverable
               </button>
               <button
                 type="button"
@@ -468,7 +532,7 @@ export function RunPanel() {
                 type="button"
                 onClick={async () => {
                   if (await copyText(textOutput)) {
-                    toast({ message: "Result copied.", variant: "success" });
+                    toast({ message: "Markdown copied.", variant: "success" });
                   }
                 }}
                 className="glass h-9 px-3 rounded-lg inline-flex items-center
@@ -476,7 +540,7 @@ export function RunPanel() {
                   hover:text-[var(--ink)]"
               >
                 <CopyIcon size={12} />
-                Copy
+                Copy raw
               </button>
               <div className="ml-auto flex items-center gap-1">
                 <span className="text-[11px] text-[var(--ink-faint)] mr-1">
@@ -514,3 +578,6 @@ export function RunPanel() {
     </div>
   );
 }
+
+void useToastEnsure;
+function useToastEnsure() { /* typecheck helper */ }

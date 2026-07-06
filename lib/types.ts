@@ -66,6 +66,28 @@ export interface Board {
   links: Record<ID, Link>;
   maxZ: number;
   createdAt: number;
+  /** History of AI runs on this board. Metadata only — no full output bodies
+   *  (storage-cheap). The current run output is shown live in the Run panel. */
+  runs: BoardRun[];
+}
+
+/** Compact record of one AI run. */
+export interface BoardRun {
+  id: ID;
+  at: number;
+  provider: string;
+  model: string;
+  promptFingerprint: string;
+  inputTokens: number;
+  outputTokens: number;
+  durationMs: number;
+  status: "ok" | "error" | "aborted";
+  rating?: 1 | -1;
+  cards: number;
+  /** The model's full output text for this run (kept so the user can
+   *  re-read and re-export past deliverables). Capped per-board to keep
+   *  localStorage pressure manageable. */
+  output?: string;
 }
 
 export interface Workspace {

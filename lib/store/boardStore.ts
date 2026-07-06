@@ -23,6 +23,7 @@ import { fitDivision } from "../snap";
 import { ZONE_FIT_PADDING } from "../constants";
 import type {
   Board,
+  BoardRun,
   Card,
   CardType,
   Division,
@@ -76,6 +77,9 @@ export interface WorkspaceState extends Workspace {
   applyOrganize: (boardId: ID, plan: OrganizePlan) => void;
   importWorkspace: (ws: Workspace) => void;
   resetWorkspace: () => void;
+  /* runs */
+  recordRun: (boardId: ID, run: BoardRun) => void;
+  rateRun: (boardId: ID, runId: ID, rating: 1 | -1) => void;
 }
 
 export function newBoard(name: string): Board {
@@ -87,6 +91,7 @@ export function newBoard(name: string): Board {
     links: {},
     maxZ: 0,
     createdAt: Date.now(),
+    runs: [],
   };
 }
 
@@ -617,7 +622,56 @@ export function createWorkspaceSlice(
       set(() => defaultWorkspace());
       emit("board:reset");
     },
+
+    recordRun: (boardId, run) => {
+      set((s) => {
+        const b = s.boards[boardId];
+        if (!b) return s;
+        // Defensive: old boards may not have a runs array. Create one.
+        const runs = Array.isArray(b.runs) ? b.runs.slice() : [];
+        runs.unshift(run);
+        const capped = runs.slice(0, 25);
+        return {
+          boards: {
+            ...s.boards,
+            [boardId]: { ...b, runs: capped },
+          },
+        };
+      });
+    },
+
+    rateRun: (boardId, runId, rating) => {
+      set((s) => {
+        const b = s.boards[boardId];
+        if (!b || !Array.isArray(b.runs)) return s;
+        return {
+          boards: {
+            ...s.boards,
+            [boardId]: {
+              ...b,
+              runs: b.runs.map((r) => (r.id === runId ? { ...r, rating } : r)),
+            },
+          },
+        };
+      });
+    },
   });
+}
+
+function slimBoardsForStorage(boards: Record<ID, Board>): Record<ID, Board> {
+  // Strip the `output` field from each run before persisting — it bloats
+  // localStorage. The output stays in memory while the tab is open; only
+  // the metadata persists.
+  const out: Record<ID, Board> = {};
+  for (const [id, b] of Object.entries(boards)) {
+    out[id] = {
+      ...b,
+      runs: Array.isArray(b.runs)
+        ? b.runs.map((r) => ({ ...r, output: undefined }))
+        : [],
+    };
+  }
+  return out;
 }
 
 export const useBoardStore = create<WorkspaceState>()(
@@ -627,7 +681,7 @@ export const useBoardStore = create<WorkspaceState>()(
       storage: createJSONStorage(() => guardedStorage),
       partialize: (s) => ({
         version: s.version,
-        boards: s.boards,
+        boards: slimBoardsForStorage(s.boards),
         boardOrder: s.boardOrder,
         activeBoardId: s.activeBoardId,
       }),
@@ -636,7 +690,7 @@ export const useBoardStore = create<WorkspaceState>()(
     limit: UNDO_LIMIT,
     partialize: (s) => ({
       version: s.version,
-      boards: s.boards,
+      boards: slimBoardsForStorage(s.boards),
       boardOrder: s.boardOrder,
       activeBoardId: s.activeBoardId,
     }),

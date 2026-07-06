@@ -297,6 +297,7 @@ function buildBoard(raw: unknown): { board: Board; createdAt: number } | null {
     links: newLinks,
     maxZ,
     createdAt: shell.createdAt,
+    runs: [],
   };
   return { board, createdAt: shell.createdAt };
 }

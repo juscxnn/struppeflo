@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/ui/icons";
+import { HeroStats } from "@/components/landing/StatsSection";
 
 export function Hero() {
   return (
@@ -11,9 +12,8 @@ export function Hero() {
         Put everything AI needs in one place.
       </h1>
       <p className="mt-5 text-[16px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
-        Drop your messy thoughts on a canvas. Group them by what they
-        belong to. Struppëflo turns the layout into the structured brief
-        frontier models need to actually finish long tasks.
+        Drop thoughts onto a canvas. Group them. The layout becomes a brief
+        Claude, ChatGPT, or Gemini can finish in one pass.
       </p>
 
       <div className="mt-7 flex items-center gap-3">
@@ -35,8 +35,9 @@ export function Hero() {
         </a>
       </div>
       <p className="mt-4 text-[12.5px] text-[var(--ink-faint)]">
-        Free. Runs with Claude, ChatGPT, Gemini, MiniMax, Kimi.
+        Free. No account. Works with your own Claude / ChatGPT / Gemini key — or open in the browser tab.
       </p>
+      <HeroStats />
     </section>
   );
 }

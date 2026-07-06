@@ -9,7 +9,9 @@ import { CardView } from "./CardView";
 import { DivisionView } from "./DivisionView";
 import { FlowLayer } from "./FlowLayer";
 import { LinkLayer } from "./LinkLayer";
+import { SnapHintToast } from "./SnapHintToast";
 import { SuggestionLayer } from "./SuggestionLayer";
+import { ZonePreviewLayer } from "./ZonePreviewLayer";
 import { ZoomControls } from "./ZoomControls";
 import { DumpIcon, CardStackIcon } from "@/components/ui/icons";
 import { useUIStore } from "@/lib/store/uiStore";
@@ -364,6 +366,7 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
         </div>
         <LinkLayer />
         <FlowLayer />
+        <ZonePreviewLayer />
         <div>
           {cardIds.map((id) => (
             <CardView key={id} cardId={id} />
@@ -415,6 +418,8 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
       {ctx.policy.createCards &&
         cardIds.length === 0 &&
         divisionIds.length === 0 && <EmptyState />}
+
+      {ctx.policy.edit && <SnapHintToast />}
     </div>
   );
 }

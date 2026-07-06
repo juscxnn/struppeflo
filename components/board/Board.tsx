@@ -31,11 +31,12 @@ export function Board({
     linkId: ID;
     x: number;
     y: number;
+    normal?: { x: number; y: number };
   } | null>(null);
 
   const requestLinkPopover = useCallback(
-    (linkId: ID, screen: { x: number; y: number }) => {
-      setPopover({ linkId, x: screen.x, y: screen.y });
+    (linkId: ID, screen: { x: number; y: number; normal?: { x: number; y: number } }) => {
+      setPopover({ linkId, x: screen.x, y: screen.y, normal: screen.normal });
     },
     [],
   );
@@ -59,7 +60,7 @@ export function Board({
       {popover && (
         <LinkPopover
           linkId={popover.linkId}
-          screen={popover}
+          screen={{ x: popover.x, y: popover.y, normal: popover.normal }}
           onClose={() => setPopover(null)}
         />
       )}

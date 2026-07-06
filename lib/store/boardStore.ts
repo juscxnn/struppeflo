@@ -297,7 +297,7 @@ export function createWorkspaceSlice(
 
     commitMove: (boardId, moves) => {
       if (moves.length === 0) return;
-      const affectedDivisions = new Set<ID>();
+      const destinationDivisions = new Set<ID>();
       set((s) => {
         const b = s.boards[boardId];
         if (!b) return s;
@@ -324,10 +324,12 @@ export function createWorkspaceSlice(
             divisionId: newDivisionId,
             updatedAt: Date.now(),
           };
+          // Only the destination zone needs to auto-fit — the source zone
+          // keeps its size when a card leaves it. This preserves the user's
+          // intentional zone geometry even after cards migrate out.
           const prev = oldMembership.get(card.id) ?? null;
-          if (prev !== newDivisionId) {
-            if (prev) affectedDivisions.add(prev);
-            if (newDivisionId) affectedDivisions.add(newDivisionId);
+          if (newDivisionId && newDivisionId !== prev) {
+            destinationDivisions.add(newDivisionId);
           }
         }
         return {
@@ -335,13 +337,13 @@ export function createWorkspaceSlice(
         };
       });
 
-      // Auto-fit affected zones to their (now possibly different) membership.
-      if (affectedDivisions.size > 0) {
+      // Auto-fit destination zones to their (now possibly different) membership.
+      if (destinationDivisions.size > 0) {
         set((s) => {
           const b = s.boards[boardId];
           if (!b) return s;
           const divisions = { ...b.divisions };
-          for (const divId of affectedDivisions) {
+          for (const divId of destinationDivisions) {
             const division = divisions[divId];
             if (!division) continue;
             const members = Object.values(b.cards).filter(

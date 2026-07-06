@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-interface Stats {
+export interface Stats {
   configured: boolean;
   users: number;
   runs: number;
@@ -16,7 +16,15 @@ const FALLBACK: Stats = {
   outputs: 0,
 };
 
-export function StatsSection() {
+/**
+ * Fetches live aggregate counts used by the landing page. Returns the same
+ * FALLBACK (all zeros, `configured: false`) when KV isn't reachable so the UI
+ * can render a friendly empty state without crashing.
+ *
+ * Re-fetches every 30s. Caller is responsible for deciding whether to render
+ * anything based on the numbers (e.g., gate the hero stats on `users >= 10`).
+ */
+export function useStats(): { stats: Stats; loaded: boolean } {
   const [stats, setStats] = useState<Stats>(FALLBACK);
   const [loaded, setLoaded] = useState(false);
 
@@ -43,8 +51,73 @@ export function StatsSection() {
     };
   }, []);
 
+  return { stats, loaded };
+}
+
+const TOOLTIPS: Record<keyof Omit<Stats, "configured">, string> = {
+  users: "Unique anonymous sessions that started a run.",
+  runs: "Total AI runs started across all users.",
+  outputs: "Unique compiled prompts we've seen.",
+};
+
+export function HeroStats() {
+  const { stats, loaded } = useStats();
   // Zero-state counters read as a dead product. Render nothing until the
   // numbers are real enough to help conversion instead of hurting it.
+  if (!loaded || !stats.configured || stats.users < 10) return null;
+  return (
+    <div className="mt-8 flex items-center justify-center gap-6 text-[11.5px] text-[var(--ink-faint)] flex-wrap">
+      <StatPill label="people" value={stats.users} tip={TOOLTIPS.users} />
+      <span className="opacity-50">·</span>
+      <StatPill label="runs" value={stats.runs} tip={TOOLTIPS.runs} />
+      <span className="opacity-50">·</span>
+      <StatPill label="prompts" value={stats.outputs} tip={TOOLTIPS.outputs} />
+    </div>
+  );
+}
+
+function StatPill({
+  label,
+  value,
+  tip,
+}: {
+  label: string;
+  value: number;
+  tip: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setOpen(false)}
+        aria-label={`${label}: ${value}. ${tip}`}
+        className="inline-flex items-baseline gap-1.5 hover:text-[var(--ink-dim)] transition-colors"
+      >
+        <strong className="font-semibold tabular-nums text-[var(--ink-dim)]">
+          <AnimatedNumber value={value} />
+        </strong>
+        <span>{label}</span>
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-10
+            w-56 px-2.5 py-1.5 rounded-md text-[11px] leading-snug
+            bg-[var(--surface)] border border-[var(--border)]
+            text-[var(--ink-dim)] shadow-sm text-left"
+        >
+          {tip}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function StatsSection() {
+  const { stats, loaded } = useStats();
+
   if (!loaded || !stats.configured || stats.users < 10) return null;
 
   return (
@@ -118,4 +191,3 @@ function formatCount(n: number): string {
   if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
-

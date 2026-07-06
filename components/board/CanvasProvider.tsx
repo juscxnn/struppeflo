@@ -79,6 +79,16 @@ export interface GuideRefs {
   h: HTMLDivElement | null;
 }
 
+/** Live drag preview: the zone a single dragged card would adopt, and the
+ *  rect that zone will resize to after the drop's auto-fit. The drag loop
+ *  updates this each frame; the ZonePreviewLayer renders it. */
+export interface ZonePreview {
+  divisionId: ID;
+  rect: Rect;
+  /** Number of cards in the zone after this card joins. */
+  memberCount: number;
+}
+
 /**
  * Runs inside the drag rAF for single-card drags. Finds the nearest unlinked
  * card within the edge-gap threshold, arms after a continuous dwell, applies
@@ -130,19 +140,21 @@ class ProximityEngine {
       this.candidate = best;
       this.candidateSince = now;
       this.armed = false;
-      this.hideGhost();
     }
 
-    if (
-      this.candidate &&
-      bestRect &&
-      now - this.candidateSince >= PROXIMITY_DWELL_MS
-    ) {
-      if (!this.armed) {
+    // Ghost line appears immediately when a candidate is in range — dwell only
+    // confirms the link by lighting the chip/glow. This makes the connection
+    // feel responsive instead of a sudden pop.
+    if (this.candidate && bestRect) {
+      this.drawGhost(liveRect, bestRect, this.armed);
+      if (!this.armed && now - this.candidateSince >= PROXIMITY_DWELL_MS) {
         this.armed = true;
         this.setGlow(this.candidate, true);
+        // Re-draw the ghost with the chip now visible.
+        this.drawGhost(liveRect, bestRect, true);
       }
-      this.drawGhost(liveRect, bestRect);
+    } else {
+      this.hideGhost();
     }
   }
 
@@ -165,7 +177,7 @@ class ProximityEngine {
     this.cardElements.get(id)?.classList.toggle("proximity-target", on);
   }
 
-  private drawGhost(from: Rect, to: Rect) {
+  private drawGhost(from: Rect, to: Rect, showChip: boolean) {
     const g = this.ghost.current;
     if (!g?.path) return;
     const anchors = anchorsFor(from, to);
@@ -173,8 +185,12 @@ class ProximityEngine {
     g.path.setAttribute("d", bez.d);
     g.path.style.display = "";
     if (g.chip) {
-      g.chip.style.display = "";
-      g.chip.style.transform = `translate3d(${bez.mid.x}px, ${bez.mid.y}px, 0) translate(-50%, -50%)`;
+      if (showChip) {
+        g.chip.style.display = "";
+        g.chip.style.transform = `translate3d(${bez.mid.x}px, ${bez.mid.y}px, 0) translate(-50%, -50%)`;
+      } else {
+        g.chip.style.display = "none";
+      }
     }
   }
 
@@ -204,7 +220,13 @@ export interface CanvasContextValue {
   /** Alignment guide line elements, driven imperatively by the drag loop. */
   guidesRef: RefObject<GuideRefs>;
   /** Set by Board — opens the link type popover for a link id. */
-  requestLinkPopover: (linkId: ID, screen: { x: number; y: number }) => void;
+  requestLinkPopover: (
+    linkId: ID,
+    screen: { x: number; y: number; normal?: { x: number; y: number } },
+  ) => void;
+  /** Updated imperatively each frame by the card drag loop with the
+   *  prospective post-fit zone rect, or null when no zone would adopt. */
+  previewZoneRef: RefObject<ZonePreview | null>;
   history: { pause: () => void; resume: () => void };
   /** True when card count pushed the board into perf mode (React-computed). */
   perfByCountRef: RefObject<boolean>;
@@ -241,7 +263,10 @@ export function CanvasProvider({
   policy: InteractionPolicy;
   history?: { pause: () => void; resume: () => void };
   initialCamera?: Camera;
-  requestLinkPopover: (linkId: ID, screen: { x: number; y: number }) => void;
+  requestLinkPopover: (
+    linkId: ID,
+    screen: { x: number; y: number; normal?: { x: number; y: number } },
+  ) => void;
   children: ReactNode;
 }) {
   const cameraRef = useRef<Camera>(initialCamera ?? { tx: 0, ty: 0, s: 1 });
@@ -249,6 +274,7 @@ export function CanvasProvider({
   const worldRef = useRef<HTMLDivElement | null>(null);
   const ghostRef = useRef<GhostRefs>({ path: null, chip: null });
   const guidesRef = useRef<GuideRefs>({ v: null, h: null });
+  const previewZoneRef = useRef<ZonePreview | null>(null);
   const perfByCountRef = useRef(false);
 
   const value = useMemo<CanvasContextValue>(() => {
@@ -360,6 +386,7 @@ export function CanvasProvider({
       ghostRef,
       guidesRef,
       requestLinkPopover,
+      previewZoneRef,
       history: history ?? { pause: () => {}, resume: () => {} },
       perfByCountRef,
       applyCamera,

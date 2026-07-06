@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { z } from "zod";
+import { requireAdmin } from "../_lib/auth";
 
 /**
  * Read access for the operator (Justin). Auth is a static bearer token in
@@ -10,30 +11,33 @@ import { z } from "zod";
  *   GET /api/admin/telemetry?day=2026-07-06&limit=500
  *   Authorization: Bearer <TELEMETRY_ADMIN_TOKEN>
  *
- * Returns 404 if KV is not configured (no data, no read endpoint).
+ * Returns 503 if KV is not configured (no data, no read endpoint).
  */
+export const runtime = "nodejs";
 
 const querySchema = z.object({
   day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   limit: z.coerce.number().int().min(1).max(2000).optional(),
   kind: z
-    .enum(["structure", "edit", "run", "run_quality", "session"])
+    .enum([
+      "structure",
+      "edit",
+      "run",
+      "run_quality",
+      "session",
+      "consent",
+      "first_run",
+    ])
     .optional(),
 });
 
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function kvUnavailable(): NextResponse {
+  return NextResponse.json({ error: "KV not configured" }, { status: 503 });
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
-  const token = process.env.TELEMETRY_ADMIN_TOKEN;
-  if (!token) return unauthorized();
-
-  const auth = req.headers.get("authorization") ?? "";
-  const bearer = auth.toLowerCase().startsWith("bearer ")
-    ? auth.slice(7).trim()
-    : "";
-  if (!bearer || bearer !== token) return unauthorized();
+  const denied = requireAdmin(req);
+  if (denied) return denied;
 
   const url = new URL(req.url);
   const parsed = querySchema.safeParse({
@@ -49,10 +53,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-    return NextResponse.json(
-      { error: "KV not configured" },
-      { status: 503 },
-    );
+    return kvUnavailable();
   }
 
   const day = parsed.data.day ?? new Date().toISOString().slice(0, 10);
@@ -83,6 +84,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     `telemetry:counter:run:${day}`,
     `telemetry:counter:run_quality:${day}`,
     `telemetry:counter:session:${day}`,
+    `telemetry:counter:consent:${day}`,
+    `telemetry:counter:first_run:${day}`,
+    `telemetry:counter:run:ok:${day}`,
+    `telemetry:counter:run:error:${day}`,
+    `telemetry:counter:run:aborted:${day}`,
   );
 
   return NextResponse.json({
@@ -94,6 +100,11 @@ export async function GET(req: Request): Promise<NextResponse> {
       run: counters[2] ?? 0,
       run_quality: counters[3] ?? 0,
       session: counters[4] ?? 0,
+      consent: counters[5] ?? 0,
+      first_run: counters[6] ?? 0,
+      run_ok: counters[7] ?? 0,
+      run_error: counters[8] ?? 0,
+      run_aborted: counters[9] ?? 0,
     },
     events,
   });

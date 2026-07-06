@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { z } from "zod";
+import { sendToBigQuery } from "@/lib/telemetry/bigquery";
 
 /**
  * Tier-2 opt-in structural telemetry. Schema-hardened: titles, bodies, and
@@ -12,8 +13,15 @@ import { z } from "zod";
  *   - TELEMETRY_WEBHOOK_URL set              → forward server-side.
  *   - else                                   → console.log only.
  *
+ * In addition, every accepted event is streamed to BigQuery (fire-and-forget)
+ * if GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS_JSON are set. The
+ * response includes a `bigquery` field so the operator can verify the sink
+ * is engaged without checking Vercel logs.
+ *
  * The route is POST-only and returns no identifying information.
  */
+
+export const runtime = "nodejs";
 
 const cardTypeEnum = z.enum(["note", "task", "question", "insight", "resource"]);
 const linkTypeEnum = z.enum(["related_to", "depends_on", "input_to"]);
@@ -44,6 +52,23 @@ const structureSchema = z.object({
   linkTypes: histogramSchema,
   maxDependencyDepth: z.number().int().min(0).max(64),
   structureFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  templateId: z.string().min(1).max(80).optional(),
+  persona: z.string().min(1).max(40).optional(),
+  zoneHistogram: z
+    .record(
+      z.object({
+        cards: z.number().int().min(0).max(10_000),
+        cardTypes: histogramSchema,
+      }),
+    )
+    .optional(),
+  linkRatio: z
+    .object({
+      dependsOn: z.number().int().min(0).max(10_000),
+      inputTo: z.number().int().min(0).max(10_000),
+      relatedTo: z.number().int().min(0).max(10_000),
+    })
+    .optional(),
 });
 
 const editSchema = z.object({
@@ -91,8 +116,29 @@ const sessionSchema = z.object({
   finalStructure: structureSchema.optional(),
 });
 
+const consentSchema = z.object({
+  shown: z.boolean(),
+  optedIn: z.boolean(),
+});
+
+const firstRunSchema = z.object({
+  provider: z.string().min(1).max(40),
+  model: z.string().min(1).max(80),
+  promptFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  durationMs: z.number().int().min(0).max(60 * 60 * 1000),
+  cards: z.number().int().min(0).max(10_000),
+});
+
 const bodySchema = z.object({
-  kind: z.enum(["structure", "edit", "run", "run_quality", "session"]),
+  kind: z.enum([
+    "structure",
+    "edit",
+    "run",
+    "run_quality",
+    "session",
+    "consent",
+    "first_run",
+  ]),
   at: z.string().datetime(),
   userId: z.string().min(8).max(64),
   structure: structureSchema.optional(),
@@ -100,15 +146,18 @@ const bodySchema = z.object({
   run: runSchema.optional(),
   runQuality: runQualitySchema.optional(),
   session: sessionSchema.optional(),
+  consent: consentSchema.optional(),
+  firstRun: firstRunSchema.optional(),
 });
 
 const TTL_SECONDS = 90 * 24 * 60 * 60;
+const LAST_SEEN_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export async function POST(req: Request): Promise<NextResponse> {
   let parsed: z.infer<typeof bodySchema>;
   try {
     parsed = bodySchema.parse(await req.json());
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { error: "Invalid telemetry payload" },
       { status: 400 },
@@ -132,12 +181,26 @@ export async function POST(req: Request): Promise<NextResponse> {
       await kv.rpush(userKey, JSON.stringify(parsed));
       await kv.ltrim(userKey, -1000, -1);
       await kv.expire(userKey, TTL_SECONDS);
+      // DAU/WAU/MAU key — last time we saw this user accept a telemetry
+      // event. 90-day TTL matches the rest of the per-user data so the
+      // admin retention endpoint can compute a clean 90-day window.
+      await kv.set(
+        `telemetry:user:${parsed.userId}:lastSeen`,
+        parsed.at,
+        { ex: LAST_SEEN_TTL_SECONDS },
+      );
       // Per-kind counter, useful for high-level dashboards.
       await kv.incr(`telemetry:counter:${parsed.kind}:${day}`);
       await kv.expire(`telemetry:counter:${parsed.kind}:${day}`, TTL_SECONDS);
       // All-time totals for the public landing-page counter. The user set
       // grows monotonically; runs and structures grow as events arrive.
-      await kv.sadd("telemetry:users", parsed.userId);
+      // sadd returns the number of *new* members — use that to count
+      // "first-time user today" without an extra round-trip.
+      const newMembers = await kv.sadd("telemetry:users", parsed.userId);
+      if (newMembers > 0) {
+        await kv.incr(`telemetry:counter:users_new:${day}`);
+        await kv.expire(`telemetry:counter:users_new:${day}`, TTL_SECONDS);
+      }
       if (parsed.kind === "run") {
         await kv.incr("telemetry:totals:runs");
         const fp = parsed.run?.promptFingerprint;
@@ -145,6 +208,74 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       if (parsed.kind === "structure") {
         await kv.incr("telemetry:totals:structures");
+      }
+      // Per-run status counters (for the admin summary endpoint).
+      if (parsed.kind === "run" && parsed.run) {
+        const status = parsed.run.status;
+        await kv.incr(`telemetry:counter:run:${status}:${day}`);
+        await kv.expire(
+          `telemetry:counter:run:${status}:${day}`,
+          TTL_SECONDS,
+        );
+        // Per-model thumbs: lets /api/admin/models answer
+        // "is GPT-5 getting more 👎 than Opus?" without scanning the day list.
+        const r = parsed.run.rating;
+        if (r === 1) {
+          await kv.incr(
+            `telemetry:rating:${parsed.run.provider}:${parsed.run.model}:${day}:up`,
+          );
+          await kv.expire(
+            `telemetry:rating:${parsed.run.provider}:${parsed.run.model}:${day}:up`,
+            TTL_SECONDS,
+          );
+        } else if (r === -1) {
+          await kv.incr(
+            `telemetry:rating:${parsed.run.provider}:${parsed.run.model}:${day}:down`,
+          );
+          await kv.expire(
+            `telemetry:rating:${parsed.run.provider}:${parsed.run.model}:${day}:down`,
+            TTL_SECONDS,
+          );
+        }
+      }
+      // Session counts: every session_start lands here, every session_end
+      // does too. The admin summary uses this as a sessions/day proxy.
+      if (parsed.kind === "session") {
+        await kv.incr(`telemetry:counter:session_event:${day}`);
+        await kv.expire(
+          `telemetry:counter:session_event:${day}`,
+          TTL_SECONDS,
+        );
+      }
+      // Edits: keep a separate day counter so the summary endpoint doesn't
+      // have to scan the day list.
+      if (parsed.kind === "edit") {
+        await kv.incr(`telemetry:counter:edit:${day}`);
+        await kv.expire(`telemetry:counter:edit:${day}`, TTL_SECONDS);
+      }
+      // Consent: write a schema-hardened, content-free record. We persist
+      // ONLY the timestamp — the bools live in the same event but we don't
+      // index them so a user with consent=false is still a user we can
+      // compute retention over.
+      if (parsed.kind === "consent") {
+        await kv.set(
+          `telemetry:consent:${parsed.userId}:${parsed.at}`,
+          "1",
+          { ex: TTL_SECONDS },
+        );
+      }
+      // first_run: persist once per user so retention can compute D1/D7/D30.
+      if (parsed.kind === "first_run") {
+        const exists = await kv.get(
+          `telemetry:user:${parsed.userId}:firstRunAt`,
+        );
+        if (!exists) {
+          await kv.set(
+            `telemetry:user:${parsed.userId}:firstRunAt`,
+            parsed.at,
+            { ex: LAST_SEEN_TTL_SECONDS },
+          );
+        }
       }
     } catch (e) {
       console.error("[telemetry] kv write failed", e);
@@ -163,8 +294,22 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   }
 
+  // Fire-and-forget BigQuery insert, raced against a 2s ceiling so the
+  // response stays snappy. If BigQuery is unreachable, the user-facing
+  // latency is unaffected and the operator can read the failure in the
+  // Vercel function logs. We deliberately don't `void` here because the
+  // response body must report the outcome.
+  type BqStatus = "ok" | "skipped" | "failed";
+  const bigqueryStatus: BqStatus = await Promise.race<BqStatus>([
+    sendToBigQuery(parsed).catch((): BqStatus => "failed"),
+    new Promise<BqStatus>((resolve) => {
+      setTimeout(() => resolve("skipped"), 2000);
+    }),
+  ]);
+
   return NextResponse.json({
     ok: true,
     storage: hasKv ? "kv" : webhook ? "webhook" : "log",
+    bigquery: bigqueryStatus,
   });
 }

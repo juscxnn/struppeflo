@@ -11,12 +11,19 @@ import { useEffect, useRef } from "react";
  * always wins.
  *
  * Reduced motion: one static frame of the same field, no cursor tracking.
+ * Hidden tab: skip the rAF tick entirely. Toggle the reduced-motion
+ * preference at runtime and the component re-evaluates on the next frame.
  */
 
-const CELL = 22;
-// Density ramp — leading spaces make calm regions genuinely empty, which is
-// what gives the field its shape (uniform dots read as noise).
-const RAMP = [" ", " ", "·", "·", ":", "-", "+", "*"];
+const CELL = 26;
+// Density ramp — the leading space keeps calm regions genuinely empty, which
+// is what gives the field its shape (uniform dots read as noise).
+const RAMP = [" ", "·", "·", ":", "-", "+", "*"];
+
+const MOUSE_RADIUS = 130;
+const MOUSE_FORCE = 0.75;
+const ALPHA_CAP = 0.22;
+const DRIFT = 2.0;
 
 export function AsciiBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -27,9 +34,10 @@ export function AsciiBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reduced = window.matchMedia(
+    const motionMql = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
-    ).matches;
+    );
+    let reduced = motionMql.matches;
 
     let width = 0;
     let height = 0;
@@ -63,10 +71,14 @@ export function AsciiBackground() {
       mouseX = -9999;
       mouseY = -9999;
     };
+    const onMotionChange = (e: MediaQueryListEvent) => {
+      reduced = e.matches;
+    };
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerleave", onLeave);
     window.addEventListener("resize", resize);
+    motionMql.addEventListener("change", onMotionChange);
 
     function drawFrame(timeMs: number) {
       if (!ctx) return;
@@ -96,8 +108,8 @@ export function AsciiBackground() {
 
           if (hasMouse) {
             const d = Math.hypot(x - mouseX, y - mouseY);
-            if (d < 150) {
-              intensity += (1 - d / 150) * 0.85;
+            if (d < MOUSE_RADIUS) {
+              intensity += (1 - d / MOUSE_RADIUS) * MOUSE_FORCE;
             }
           }
 
@@ -108,17 +120,21 @@ export function AsciiBackground() {
           const ch = RAMP[idx];
           if (ch === " ") continue;
 
-          const alpha = Math.min(0.16, 0.05 + intensity * 0.09);
+          const alpha = Math.min(ALPHA_CAP, 0.05 + intensity * 0.09);
           ctx.fillStyle = `rgba(140, 140, 160, ${alpha.toFixed(3)})`;
           // Sway with the field so fronts visibly travel.
-          ctx.fillText(ch, x + fx * 2.5, y + fy * 2.5);
+          ctx.fillText(ch, x + fx * DRIFT, y + fy * DRIFT);
         }
       }
     }
 
     let raf = 0;
     function loop(now: number) {
-      drawFrame(now);
+      // Skip work entirely when the tab is hidden — the canvas isn't visible
+      // and burning cycles for an unseen frame is pure waste.
+      if (document.visibilityState === "visible") {
+        drawFrame(now);
+      }
       raf = requestAnimationFrame(loop);
     }
 
@@ -133,6 +149,7 @@ export function AsciiBackground() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("resize", resize);
+      motionMql.removeEventListener("change", onMotionChange);
     };
   }, []);
 

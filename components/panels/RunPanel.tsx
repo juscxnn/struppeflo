@@ -33,16 +33,18 @@ import {
 import { getModel, PROVIDER_LABELS } from "@/lib/ai/models";
 import { parseOutputAsCards } from "@/lib/outputParser";
 import {
+  buildBoardStructure,
   buildRunOutcomePayload,
-  computeBoardStructure,
   sendTelemetry,
-  structureFingerprint,
 } from "@/lib/telemetry";
 import {
+  getEditsBeforeRun,
   rememberRunPrompt,
   reportRunQuality,
   reportRunStarted,
+  resetEditsCounter,
 } from "@/lib/sessionTracker";
+import { hasFiredFirstRun, markFirstRunFired } from "@/lib/firstRun";
 import { StructuredOutput } from "@/components/panels/StructuredOutput";
 import { deliverableToMarkdown, getTemplate } from "@/lib/templates";
 import type { BoardRun } from "@/lib/types";
@@ -72,6 +74,7 @@ export function RunPanel() {
   const [textOutput, setTextOutput] = useState("");
   const [thinkingOutput, setThinkingOutput] = useState("");
   const [showThinking, setShowThinking] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
   const [error, setError] = useState("");
   const [rated, setRated] = useState<null | 1 | -1>(null);
   const [lastRunId, setLastRunId] = useState<string | null>(null);
@@ -98,6 +101,7 @@ export function RunPanel() {
       abortRef.current?.abort();
       abortRef.current = null;
       setRated(null);
+      setShowRaw(false);
     }
   }, [open]);
 
@@ -131,9 +135,13 @@ export function RunPanel() {
       model: aiConfig.model,
     });
     reportRunStarted();
-    const fp = await structureFingerprint(board);
-    const structure = computeBoardStructure(board, fp);
+    resetEditsCounter();
+
+    const templateId = template?.id ?? null;
+    const persona = template?.persona ?? null;
+    const structure = await buildBoardStructure(board, templateId, persona);
     sendTelemetry({ kind: "structure", structure });
+    const fp = structure.structureFingerprint;
     rememberRunPrompt(fp);
 
     const t0 = Date.now();
@@ -166,8 +174,25 @@ export function RunPanel() {
         outputTokens: Math.ceil(fullText.length / 4),
         durationMs,
         status: "ok",
+        editsBeforeRun: getEditsBeforeRun(),
       });
       sendTelemetry({ kind: "run", run: outcome });
+
+      // First-run milestone — fire exactly once per browser so the admin
+      // retention endpoint has a cohort anchor.
+      if (!hasFiredFirstRun()) {
+        markFirstRunFired();
+        sendTelemetry({
+          kind: "first_run",
+          firstRun: {
+            provider,
+            model: aiConfig.model,
+            promptFingerprint: fp,
+            durationMs,
+            cards: cardCount,
+          },
+        });
+      }
 
       const runId = crypto.randomUUID();
       const boardRun: BoardRun = {
@@ -503,11 +528,33 @@ export function RunPanel() {
               select-text"
           >
             {textOutput ? (
-              <StructuredOutput
-                text={textOutput}
-                zones={template?.zones ?? []}
-                streaming={state === "running"}
-              />
+              <>
+                <div className="flex items-center justify-end gap-1 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRaw((v) => !v)}
+                    aria-pressed={showRaw}
+                    className={`h-6 px-2 rounded-md text-[10.5px] font-medium border transition-colors ${
+                      showRaw
+                        ? "border-[var(--border-strong)] bg-[var(--surface)] text-[var(--ink)]"
+                        : "border-[var(--border)] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:border-[var(--border-strong)]"
+                    }`}
+                  >
+                    {showRaw ? "Structured" : "Raw"}
+                  </button>
+                </div>
+                {showRaw ? (
+                  <pre className="text-[12.5px] leading-relaxed text-[var(--ink)] whitespace-pre-wrap font-sans">
+                    {textOutput}
+                  </pre>
+                ) : (
+                  <StructuredOutput
+                    text={textOutput}
+                    zones={template?.zones ?? []}
+                    streaming={state === "running"}
+                  />
+                )}
+              </>
             ) : (
               <div className="text-[12.5px] text-[var(--ink-faint)] italic">
                 {state === "running"

@@ -1,9 +1,9 @@
 import { Hero } from "@/components/landing/Hero";
 import { AsciiBackground } from "@/components/landing/AsciiBackground";
-import { StatsSection } from "@/components/landing/StatsSection";
 import { DemoBoard } from "@/components/landing/DemoBoard";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { ThesisSection } from "@/components/landing/ThesisSection";
+import { TemplatesRow } from "@/components/landing/TemplatesRow";
 import { Footer } from "@/components/landing/Footer";
 import { LandingNav } from "@/components/landing/LandingNav";
 
@@ -15,7 +15,6 @@ export default function LandingPage() {
         <LandingNav />
         <main>
           <Hero />
-          <StatsSection />
           <section
             id="demo"
             className="max-w-6xl mx-auto px-4 sm:px-6 scroll-mt-24"
@@ -27,6 +26,7 @@ export default function LandingPage() {
             </p>
           </section>
           <HowItWorks />
+          <TemplatesRow />
           <ThesisSection />
         </main>
         <Footer />

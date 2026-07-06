@@ -23,7 +23,7 @@ export function LinkPopover({
   onClose,
 }: {
   linkId: ID;
-  screen: { x: number; y: number };
+  screen: { x: number; y: number; normal?: { x: number; y: number } };
   onClose: () => void;
 }) {
   const ctx = useCanvas();
@@ -37,8 +37,16 @@ export function LinkPopover({
   if (!link) return null;
   const canEdit = ctx.policy.createLinks;
 
+  // Push the popover off the link so it doesn't occlude the line. The normal
+  // comes from the bezier midpoint; if it's missing (very short links), fall
+  // back to a default upward push.
+  const n = screen.normal ?? { x: 0, y: -1 };
+  const offset = 20;
+  const ax = screen.x + n.x * offset;
+  const ay = screen.y + n.y * offset;
+
   return (
-    <Popover anchor={{ x: screen.x, y: screen.y, w: 0, h: 0 }} onClose={onClose}>
+    <Popover anchor={{ x: ax, y: ay, w: 0, h: 0 }} onClose={onClose}>
       <div className="p-1.5 flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
         {canEdit && (
           <>

@@ -15,12 +15,14 @@
  *   - run            — per-run provider, model, duration, rating, prompt fingerprint
  *   - run_quality    — what happened after the run (re-runs, edits, added-to-board)
  *   - session        — start/end and session duration in seconds
+ *   - consent        — when the first-run disclosure was shown and the choice
+ *   - first_run      — fired once per user on their first successful run
  *
  * What NEVER gets sent at any tier: card titles, card bodies, prompt text,
  * AI output text, or API keys. The server route's zod schema forbids it.
  */
 
-import type { Board, CardType, LinkType } from "./types";
+import type { Board, CardType, Division, LinkType, Persona } from "./types";
 
 const STORAGE_KEY = "struppeflo-telemetry-opt-in";
 const USER_ID_KEY = "struppeflo-anon-user";
@@ -131,6 +133,28 @@ export interface BoardStructurePayload {
   maxDependencyDepth: number;
   /** sha256 hex of the structural shape only (cards+links+positions, no text). */
   structureFingerprint: string;
+  /**
+   * Which template the board was seeded from. Undefined for blank boards.
+   * Lives on the board's UI-store mapping, not on the board itself.
+   */
+  templateId?: string;
+  /**
+   * Persona derived from the template (e.g. "founder", "pm"). Free-form
+   * string so we can resolve it without coupling the telemetry layer to
+   * the template registry.
+   */
+  persona?: string;
+  /**
+   * Per-division (zone) histograms. Tracks the kind of content the user is
+   * dropping in each zone, which lets us answer "what gets put in the
+   * Acceptance Criteria zone?" in aggregate.
+   */
+  zoneHistogram?: Record<string, { cards: number; cardTypes: CardTypeHistogram }>;
+  /**
+   * Distribution of link types. Useful for "are people using dependency
+   * links or are they all related_to?".
+   */
+  linkRatio?: { dependsOn: number; inputTo: number; relatedTo: number };
 }
 
 export interface EditPayload {
@@ -165,7 +189,7 @@ export interface RunQualityPayload {
   promptFingerprint: string;
   /** Whether the user re-ran the same prompt. */
   reRun: boolean;
-  /** Whether the user edited the board within 60s after the run. */
+  /** Whether the user edited the board within 5 minutes after the run. */
   editedAfter: boolean;
   /** Whether the user clicked "Add result to board". */
   addedToBoard: boolean;
@@ -187,12 +211,32 @@ export interface SessionPayload {
   finalStructure?: BoardStructurePayload;
 }
 
+export interface ConsentPayload {
+  shown: boolean;
+  optedIn: boolean;
+}
+
+export interface FirstRunPayload {
+  /** Provider used on the user's first successful run. */
+  provider: string;
+  /** Model used on the user's first successful run. */
+  model: string;
+  /** Prompt fingerprint of the first successful run. */
+  promptFingerprint: string;
+  /** Duration of the first successful run, in milliseconds. */
+  durationMs: number;
+  /** How many cards were on the board when the first run completed. */
+  cards: number;
+}
+
 export type TelemetryEventKind =
   | "structure"
   | "edit"
   | "run"
   | "run_quality"
-  | "session";
+  | "session"
+  | "consent"
+  | "first_run";
 
 export interface TelemetryEvent {
   kind: TelemetryEventKind;
@@ -203,6 +247,8 @@ export interface TelemetryEvent {
   run?: RunOutcomePayload;
   runQuality?: RunQualityPayload;
   session?: SessionPayload;
+  consent?: ConsentPayload;
+  firstRun?: FirstRunPayload;
 }
 
 /* ---------- send ---------- */
@@ -286,8 +332,9 @@ export async function sha256Hex(s: string): Promise<string> {
 export function computeBoardStructure(
   board: Board,
   fingerprint?: string,
-): Omit<BoardStructurePayload, "structureFingerprint"> & {
+): Omit<BoardStructurePayload, "structureFingerprint" | "templateId" | "persona" | "zoneHistogram"> & {
   structureFingerprint: string;
+  linkRatio: { dependsOn: number; inputTo: number; relatedTo: number };
 } {
   const cardTypes: CardTypeHistogram = {};
   const linkTypes: LinkTypeHistogram = {};
@@ -300,6 +347,11 @@ export function computeBoardStructure(
     }
   }
   const depth = dependencyDepth(board);
+  const linkRatio = {
+    dependsOn: linkTypes.depends_on ?? 0,
+    inputTo: linkTypes.input_to ?? 0,
+    relatedTo: linkTypes.related_to ?? 0,
+  };
   return {
     cards: Object.keys(board.cards).length,
     divisions: Object.keys(board.divisions).length,
@@ -308,6 +360,54 @@ export function computeBoardStructure(
     linkTypes,
     maxDependencyDepth: depth,
     structureFingerprint: fingerprint ?? "",
+    linkRatio,
+  };
+}
+
+/**
+ * Build a full BoardStructurePayload from a Board, including the per-zone
+ * histogram and the optional template / persona context. Use this from
+ * RunPanel right before a run is dispatched so the structure telemetry is
+ * self-describing (no client-side stitching required to know which template
+ * the user was working from).
+ */
+export async function buildBoardStructure(
+  board: Board,
+  templateId?: string | null,
+  persona?: Persona | string | null,
+): Promise<BoardStructurePayload> {
+  const fp = await structureFingerprint(board);
+  const base = computeBoardStructure(board, fp);
+
+  // Per-division histogram. The structural shape of a template (which zones
+  // exist) is a strong signal of "what is this board for" — we count
+  // membership, not pixel position.
+  const zoneHistogram: Record<string, { cards: number; cardTypes: CardTypeHistogram }> = {};
+  const divisions = Object.values(board.divisions) as Division[];
+  // Initialize each zone with an empty histogram so it shows up as 0/0 even
+  // when the user hasn't dropped anything in it yet — better than missing keys
+  // in the SQL.
+  for (const d of divisions) {
+    zoneHistogram[d.name] = { cards: 0, cardTypes: {} };
+  }
+  for (const c of Object.values(board.cards)) {
+    const divId = c.divisionId;
+    if (!divId) continue;
+    const div = board.divisions[divId];
+    if (!div) continue;
+    if (!zoneHistogram[div.name]) {
+      zoneHistogram[div.name] = { cards: 0, cardTypes: {} };
+    }
+    zoneHistogram[div.name].cards += 1;
+    zoneHistogram[div.name].cardTypes[c.type] =
+      (zoneHistogram[div.name].cardTypes[c.type] ?? 0) + 1;
+  }
+
+  return {
+    ...base,
+    ...(templateId ? { templateId } : {}),
+    ...(persona ? { persona } : {}),
+    zoneHistogram,
   };
 }
 

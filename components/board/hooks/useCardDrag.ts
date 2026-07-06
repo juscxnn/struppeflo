@@ -5,15 +5,22 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useToast } from "@/components/ui/Toast";
+import { noteDragForSnapHint } from "../SnapHintToast";
 import { DRAG_THRESHOLD_PX, SNAP_ALIGN_PX } from "@/lib/constants";
 import { anchorsFor, bezierBetween, clamp } from "@/lib/geometry";
 import { divisionForCard } from "@/lib/store/boardStore";
 import {
   cardRectsExcluding,
+  fitDivision,
   snapRectWithGuides,
   type SnapGuide,
 } from "@/lib/snap";
-import type { ID, Rect } from "@/lib/types";
+import {
+  DIVISION_MIN_H,
+  DIVISION_MIN_W,
+  ZONE_FIT_PADDING,
+} from "@/lib/constants";
+import type { Card, ID, Rect } from "@/lib/types";
 
 interface DragSnapshot {
   ids: ID[];
@@ -41,6 +48,10 @@ export function useCardDrag(cardId: ID) {
     hoverDivision: null as ID | null,
     snapDisabled: false,
     guides: [] as SnapGuide[],
+    /** Sticky "user wanted free placement" flag — once set during a drag,
+     *  snap stays disengaged for the rest of the gesture even if Shift is
+     *  released. This prevents an end-of-drag snap pop on free-placed cards. */
+    shiftWasHeldThisDrag: false,
   });
 
   return useMemo(() => {
@@ -187,7 +198,9 @@ export function useCardDrag(cardId: ID) {
             ctx.policy.createLinks &&
               useUIStore.getState().proximityLinkingEnabled,
           );
-          // Highlight the division that would adopt the card on drop.
+          // Highlight the division that would adopt the card on drop, and
+          // publish a post-fit zone preview so the ZonePreviewLayer can show
+          // the user exactly where the zone will land.
           const board = ctx.store.getState().boards[ctx.boardId];
           const hover = board ? divisionForCard(r, board.divisions) : null;
           if (hover !== s.current.hoverDivision) {
@@ -195,7 +208,72 @@ export function useCardDrag(cardId: ID) {
             setDivisionHover(hover, true);
             s.current.hoverDivision = hover;
           }
+          updatePreviewZone(board, hover, r, snap.ids[0]);
         }
+      }
+    };
+
+    const updatePreviewZone = (
+      board: ReturnType<typeof ctx.store.getState>["boards"][string] | undefined,
+      hover: ID | null,
+      draggedRect: Rect,
+      draggedId: ID,
+    ) => {
+      const ref = ctx.previewZoneRef;
+      if (!board || !hover) {
+        if (ref.current !== null) ref.current = null;
+        return;
+      }
+      const division = board.divisions[hover];
+      if (!division) {
+        if (ref.current !== null) ref.current = null;
+        return;
+      }
+      // Prospective membership: current members of `division` (excluding the
+      // dragged card if it already belongs) + the dragged card at its new rect.
+      const members: Card[] = [];
+      for (const card of Object.values(board.cards)) {
+        if (card.id === draggedId) continue;
+        if (card.divisionId === hover) {
+          members.push({ ...card });
+        }
+      }
+      // Synthetic card at the live drag rect, ready for the auto-fit math.
+      const draggedCard = board.cards[draggedId];
+      if (draggedCard) {
+        members.push({
+          ...draggedCard,
+          x: draggedRect.x,
+          y: draggedRect.y,
+        });
+      }
+      const fitted = fitDivision(
+        division,
+        members,
+        ZONE_FIT_PADDING,
+        DIVISION_MIN_W,
+        DIVISION_MIN_H,
+      );
+      if (!fitted) {
+        if (ref.current !== null) ref.current = null;
+        return;
+      }
+      const next = {
+        divisionId: hover,
+        rect: fitted,
+        memberCount: members.length,
+      };
+      const cur = ref.current;
+      if (
+        !cur ||
+        cur.divisionId !== next.divisionId ||
+        cur.rect.x !== next.rect.x ||
+        cur.rect.y !== next.rect.y ||
+        cur.rect.w !== next.rect.w ||
+        cur.rect.h !== next.rect.h ||
+        cur.memberCount !== next.memberCount
+      ) {
+        ref.current = next;
       }
     };
 
@@ -260,9 +338,11 @@ export function useCardDrag(cardId: ID) {
       const target = ctx.proximity.finish();
       setDivisionHover(s.current.hoverDivision, false);
       s.current.hoverDivision = null;
+      ctx.previewZoneRef.current = null;
       hideGuides();
       cleanupVisuals();
       s.current.snapshot = null;
+      s.current.shiftWasHeldThisDrag = false;
 
       // Resume BEFORE the commit so the whole drag is one undo entry.
       ctx.history.resume();
@@ -275,6 +355,7 @@ export function useCardDrag(cardId: ID) {
             return { id, x: r.x, y: r.y };
           }),
         );
+        noteDragForSnapHint();
 
         if (target && snap.ids.length === 1) {
           const linkId = ctx.store
@@ -289,12 +370,14 @@ export function useCardDrag(cardId: ID) {
             const a = board?.cards[snap.ids[0]];
             const b = board?.cards[target];
             if (a && b) {
-              const bez = bezierBetween(
-                anchorsFor(a, b).a,
-                anchorsFor(a, b).b,
-              );
+              const anchors = anchorsFor(a, b);
+              const bez = bezierBetween(anchors.a, anchors.b);
               const screen = ctx.toScreen(bez.mid.x, bez.mid.y);
-              ctx.requestLinkPopover(linkId, screen);
+              ctx.requestLinkPopover(linkId, {
+                x: screen.x,
+                y: screen.y,
+                normal: bez.normal,
+              });
             }
           }
         }
@@ -304,6 +387,7 @@ export function useCardDrag(cardId: ID) {
     return {
       onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
         if (e.button !== 0) return;
+        if (useUIStore.getState().toolMode === "division") return;
         if (useUIStore.getState().editingCardId === cardId) return;
         e.stopPropagation();
 
@@ -319,6 +403,7 @@ export function useCardDrag(cardId: ID) {
         s.current.active = true;
         s.current.moved = false;
         s.current.snapDisabled = false;
+        s.current.shiftWasHeldThisDrag = false;
         s.current.startClient = { x: e.clientX, y: e.clientY };
         s.current.latestClient = { x: e.clientX, y: e.clientY };
         try {
@@ -331,8 +416,12 @@ export function useCardDrag(cardId: ID) {
 
       onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => {
         if (!s.current.active) return;
-        // Live toggle: hold Shift to drag freely, release to snap again.
-        s.current.snapDisabled = e.shiftKey;
+        // Live toggle: hold Shift to drag freely. Once the user has held Shift
+        // during a drag, snap stays disengaged for the rest of the gesture
+        // even after release — releasing Shift at the end shouldn't snap the
+        // card back to a guide line the user deliberately avoided.
+        if (e.shiftKey) s.current.shiftWasHeldThisDrag = true;
+        s.current.snapDisabled = s.current.shiftWasHeldThisDrag || e.shiftKey;
         s.current.latestClient = { x: e.clientX, y: e.clientY };
         if (!s.current.moved) {
           const dx = e.clientX - s.current.startClient.x;

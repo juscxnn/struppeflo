@@ -97,6 +97,9 @@ export function anchorsFor(a: Rect, b: Rect): { a: Anchor; b: Anchor } {
 export interface BezierGeometry {
   d: string;
   mid: { x: number; y: number };
+  /** Unit perpendicular to the link tangent at the midpoint — used to push
+   *  attached UI (popovers) off the line so they don't occlude it. */
+  normal: { x: number; y: number };
   /** Radians — tangent direction arriving at the `b` end (for arrowheads). */
   endAngle: number;
 }
@@ -116,9 +119,26 @@ export function bezierBetween(a: Anchor, b: Anchor): BezierGeometry {
     y: (a.y + 3 * c1y + 3 * c2y + b.y) / 8,
   };
 
+  // Midpoint normal: perpendicular to (a → b). If the anchors happen to share
+  // an axis, the line is degenerate and the normal collapses — default to the
+  // anchor normals.
+  let nx = 0;
+  let ny = 0;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  if (len > 0) {
+    nx = -dy / len;
+    ny = dx / len;
+  } else {
+    nx = a.nx;
+    ny = a.ny;
+  }
+
   return {
     d: `M ${round2(a.x)} ${round2(a.y)} C ${round2(c1x)} ${round2(c1y)}, ${round2(c2x)} ${round2(c2y)}, ${round2(b.x)} ${round2(b.y)}`,
     mid,
+    normal: { x: nx, y: ny },
     endAngle: Math.atan2(b.y - c2y, b.x - c2x),
   };
 }

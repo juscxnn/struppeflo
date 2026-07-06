@@ -87,8 +87,24 @@ Zero config needed:
 npx vercel        # from this directory, or
 ```
 
-…or push to GitHub and *Import Project* in Vercel. No environment variables
-required for v1.
+…or push to GitHub and *Import Project* in Vercel.
+
+## Environment variables
+
+Everything degrades gracefully when an optional var is missing. The
+app boots and the user-facing product works with **zero env vars set**;
+the only thing that breaks is the corresponding optional feature.
+
+| Var | Required? | Purpose | Missing → |
+| --- | --- | --- | --- |
+| `KV_REST_API_URL` | Optional | Vercel KV REST endpoint (auto-set when you create a KV store). | Telemetry still logs to console and forwards to `TELEMETRY_WEBHOOK_URL` if set; public `/api/stats` returns zeros. |
+| `KV_REST_API_TOKEN` | Optional | Vercel KV REST token (auto-set). | Same as above. |
+| `TELEMETRY_WEBHOOK_URL` | Optional | Server-side forward of every telemetry event. Useful for Zapier / Make / Apps Script capture without KV. | No webhook forwarding. |
+| `TELEMETRY_ADMIN_TOKEN` | Optional but recommended for production | Bearer token required to read `/api/admin/*`. Without it, all admin endpoints return 401 — but no events are sent to the admin routes from the client either, so this is safe to skip in dev. | Admin endpoints return 401. |
+| `GOOGLE_CLOUD_PROJECT` | Optional | BigQuery project id for the long-form analytics store. | `/api/telemetry` reports `bigquery: "skipped"` and the event is not streamed. |
+| `BIGQUERY_DATASET` | Optional | BigQuery dataset name. Defaults to `struppeflo_telemetry`. | Uses default. |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | Optional | The full service-account JSON, inlined as a string (Vercel-friendly). | Same as missing `GOOGLE_CLOUD_PROJECT`. |
+| `WAITLIST_WEBHOOK_URL` | Optional | Zapier / Make / Formspree endpoint for the pro waitlist capture. | Waitlist signups are logged to Vercel function logs only. |
 
 ## Hosted AI backend (optional, later)
 

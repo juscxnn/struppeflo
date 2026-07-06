@@ -6,7 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useCanvas } from "./CanvasProvider";
 import { useUIStore } from "@/lib/store/uiStore";
 import { orderBoard, type OrderResult } from "@/lib/compiler/order";
-import type { ID } from "@/lib/types";
+import type { ID, Rect } from "@/lib/types";
 
 /**
  * Show-flow overlay: numbered badges on each zone + curved arrows between
@@ -33,13 +33,14 @@ export const FlowLayer = memo(function FlowLayer() {
   if (!showFlow || !board || !order) return null;
   if (order.sections.length === 0) return null;
 
-  // Map each section → its index in execution order. Divisions in compiler
-  // sections appear in execution order because orderBoard.topWithCycleBreaking
-  // returns a deterministic ordering with cycle breaking.
-  const divisionOrderIndex = new Map<ID, number>();
+  // Re-rank sections to 1..N based on the actual execution order. The compiler
+  // may break cycles and reorder sections out of their original positions;
+  // numbering should reflect where they end up, not the compiler's internal
+  // pre-break index.
+  const divisionDisplayNumber = new Map<ID, number>();
   order.sections.forEach((section, idx) => {
     if (section.divisionId) {
-      divisionOrderIndex.set(section.divisionId, idx);
+      divisionDisplayNumber.set(section.divisionId, idx + 1);
     }
   });
 
@@ -49,7 +50,9 @@ export const FlowLayer = memo(function FlowLayer() {
     .map((id) => {
       const div = board.divisions[id];
       if (!div) return null;
-      const orderIdx = divisionOrderIndex.get(id);
+      const orderIdx = divisionDisplayNumber.has(id)
+        ? divisionDisplayNumber.get(id)! - 1
+        : undefined;
       return { id, div, orderIdx };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -72,25 +75,24 @@ export const FlowLayer = memo(function FlowLayer() {
         <g>
           {ranked.slice(0, -1).map((curr, i) => {
             const next = ranked[i + 1];
-            const from = anchorPoint(curr.div, "right");
-            const to = anchorPoint(next.div, "left");
+            const { start, end } = flowAnchors(curr.div, next.div);
             return (
               <FlowArrow
                 key={`${curr.id}-${next.id}`}
-                from={from}
-                to={to}
+                from={start}
+                to={end}
               />
             );
           })}
         </g>
       )}
       {ranked.map(({ id, div, orderIdx }, idx) => {
-        const display = (orderIdx ?? idx) + 1;
+        const display = orderIdx !== undefined ? orderIdx + 1 : idx + 1;
         return (
           <FlowBadge
             key={id}
             number={display}
-            x={div.x + 14}
+            x={div.x + div.w - 14}
             y={div.y + 14}
           />
         );
@@ -130,9 +132,18 @@ function FlowArrow({
   from: { x: number; y: number };
   to: { x: number; y: number };
 }) {
-  // Quadratic bezier with a slight downward bias so the curve reads clearly.
-  const midX = (from.x + to.x) / 2;
-  const midY = (from.y + to.y) / 2 + Math.max(20, Math.abs(to.x - from.x) * 0.15);
+  // Quadratic bezier with a slight bias perpendicular to the line so the
+  // curve reads clearly even on short hops.
+  const mx = (from.x + to.x) / 2;
+  const my = (from.y + to.y) / 2;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  const bias = Math.min(28, Math.max(10, len * 0.18));
+  const nx = -dy / (len || 1);
+  const ny = dx / (len || 1);
+  const midX = mx + nx * bias;
+  const midY = my + ny * bias;
   const d = `M ${from.x} ${from.y} Q ${midX} ${midY} ${to.x} ${to.y}`;
   const angle = Math.atan2(to.y - midY, to.x - midX);
   return (
@@ -161,11 +172,41 @@ function ArrowHead({ x, y, angle }: { x: number; y: number; angle: number }) {
   );
 }
 
+/**
+ * Pick the edge pair between two zones based on their spatial relationship.
+ * The dominant axis of the center-to-center vector decides whether the arrow
+ * runs horizontally or vertically, so the curve naturally follows the layout.
+ */
+function flowAnchors(
+  curr: Rect,
+  next: Rect,
+): { start: { x: number; y: number }; end: { x: number; y: number } } {
+  const cx = curr.x + curr.w / 2;
+  const cy = curr.y + curr.h / 2;
+  const nx = next.x + next.w / 2;
+  const ny = next.y + next.h / 2;
+  const dx = nx - cx;
+  const dy = ny - cy;
+  if (Math.abs(dy) > Math.abs(dx)) {
+    // Vertical layout — arrow from bottom of curr to top of next (or top→bottom
+    // when next is above).
+    return {
+      start: anchorPoint(curr, dy > 0 ? "bottom" : "top"),
+      end: anchorPoint(next, dy > 0 ? "top" : "bottom"),
+    };
+  }
+  return {
+    start: anchorPoint(curr, dx > 0 ? "right" : "left"),
+    end: anchorPoint(next, dx > 0 ? "left" : "right"),
+  };
+}
+
 function anchorPoint(
-  rect: { x: number; y: number; w: number; h: number },
-  side: "right" | "left" | "bottom",
+  rect: Rect,
+  side: "right" | "left" | "top" | "bottom",
 ): { x: number; y: number } {
   if (side === "right") return { x: rect.x + rect.w, y: rect.y + rect.h / 2 };
   if (side === "left") return { x: rect.x, y: rect.y + rect.h / 2 };
-  return { x: rect.x + rect.w / 2, y: rect.y + rect.h };
+  if (side === "bottom") return { x: rect.x + rect.w / 2, y: rect.y + rect.h };
+  return { x: rect.x + rect.w / 2, y: rect.y };
 }

@@ -223,8 +223,19 @@ body {
   border-color: var(--border-strong);
 }
 
+.division-view {
+  transition: box-shadow 0.15s ease, background-color 0.15s ease,
+    left 0.2s ease, top 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+@keyframes zone-preview-in {
+  from { opacity: 0; }
+  to { opacity: 0.85; }
+}
+
 .division-hover {
-  box-shadow: inset 0 0 0 1.5px var(--accent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent) !important;
+  background-color: var(--accent-soft) !important;
 }
 
 @keyframes proximity-pulse {
@@ -275,6 +286,13 @@ body {
 
 @keyframes ghost-dash {
   to { stroke-dashoffset: -16; }
+}
+
+@keyframes flow-dash {
+  to { stroke-dashoffset: -16; }
+}
+.flow-layer path[stroke-dasharray] {
+  animation: flow-dash 1.2s linear infinite;
 }
 
 @keyframes link-create {

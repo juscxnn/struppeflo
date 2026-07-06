@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
 import { useToast } from "@/components/ui/Toast";
+import { useUIStore } from "@/lib/store/uiStore";
 import { anchorsFor, bezierBetween, pointInRect } from "@/lib/geometry";
 import type { ID } from "@/lib/types";
 
@@ -103,9 +104,13 @@ export function useLinkDraw(cardId: ID) {
           const b = board?.cards[target];
           if (a && b) {
             const anchors = anchorsFor(a, b);
-            const mid = bezierBetween(anchors.a, anchors.b).mid;
-            const screen = ctx.toScreen(mid.x, mid.y);
-            ctx.requestLinkPopover(linkId, screen);
+            const bez = bezierBetween(anchors.a, anchors.b);
+            const screen = ctx.toScreen(bez.mid.x, bez.mid.y);
+            ctx.requestLinkPopover(linkId, {
+              x: screen.x,
+              y: screen.y,
+              normal: bez.normal,
+            });
           }
         }
       }
@@ -114,6 +119,7 @@ export function useLinkDraw(cardId: ID) {
     return {
       onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
         if (e.button !== 0 || !ctx.policy.createLinks) return;
+        if (useUIStore.getState().toolMode === "division") return;
         e.stopPropagation();
         s.current.active = true;
         s.current.latestClient = { x: e.clientX, y: e.clientY };

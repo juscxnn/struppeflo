@@ -94,9 +94,13 @@ export const LinkPath = memo(function LinkPath({ linkId }: { linkId: ID }) {
           const b = l && board?.cards[l.to];
           if (!a || !b) return;
           const anchors = anchorsFor(a, b);
-          const mid = bezierBetween(anchors.a, anchors.b).mid;
-          const screen = ctx.toScreen(mid.x, mid.y);
-          ctx.requestLinkPopover(linkId, screen);
+          const bez = bezierBetween(anchors.a, anchors.b);
+          const screen = ctx.toScreen(bez.mid.x, bez.mid.y);
+          ctx.requestLinkPopover(linkId, {
+            x: screen.x,
+            y: screen.y,
+            normal: bez.normal,
+          });
         }}
       />
       <path

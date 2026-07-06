@@ -22,8 +22,6 @@ export type AnalyticsEvent =
   | "key_connected"
   | "tour_completed"
   | "waitlist_joined"
-  | "board_created_blank"
-  | "session_duration"
   | "result_added_to_board"
   | "result_split_into_cards"
   | "run_helpful_yes"

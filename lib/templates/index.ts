@@ -81,7 +81,7 @@ const PRD_ZONES: ZoneSpec[] = [
   },
   {
     name: "Open Questions",
-    outputKind: "paragraph",
+    outputKind: "checklist",
     cardTypes: ["question"],
     placeholder: "What are we still unsure about?",
     hint: "Decisions to make, risks to track.",
@@ -140,7 +140,7 @@ const CONTENT_ZONES: ZoneSpec[] = [
   },
   {
     name: "Edit",
-    outputKind: "checklist",
+    outputKind: "paragraph",
     cardTypes: ["task", "question"],
     placeholder: "What needs tightening?",
   },
@@ -161,6 +161,25 @@ const TRIAGE_ZONES: ZoneSpec[] = [
   },
 ];
 
+/* -------------------- Universal trailer -------------------- */
+
+const UNIVERSAL_TRAILER = `
+
+Output rules (strict):
+- No preface ("Here's your...", "Sure!", etc.). Start with the title.
+- No postscript ("Let me know if...", etc.). End after the last section.
+- If a section has no relevant content, write exactly one line: "_No notes yet — fill in the cards on the board._"
+- End with an "Assumptions:" section listing any guesses in one line each.`;
+
+/**
+ * Apply the universal "no preface / no postscript" trailer to any
+ * template-specific system prompt. Keeps the trailer identical across
+ * templates so the model sees one consistent contract.
+ */
+function appendUniversalRules(systemPrompt: string): string {
+  return `${systemPrompt.trimEnd()}${UNIVERSAL_TRAILER}`;
+}
+
 /* -------------------- Per-template instructions + system prompts -------------------- */
 /* The instruction is what the user MEANS to do. The system prompt is the
  * contract that gets the model to produce it well. They are tightly paired
@@ -177,9 +196,13 @@ Output format (strict):
 - Inside each heading, write the section content using the cards in that zone as your source. Use their content verbatim where useful, paraphrase where it improves clarity.
 - For checklist zones (Channels, Launch), use a bulleted list with concrete actions — verbs at the start, owners if mentioned, dates if mentioned.
 - For paragraph zones (Research, Positioning), use prose. Lead with the most important sentence.
+- Lead each section with the conclusion, not the buildup. First sentence is the takeaway.
+- When a card title contains a phrase worth keeping, quote it verbatim in your output rather than paraphrasing.
 - Be specific to their situation. Reference their actual cards. No generic advice.
 - If a zone has no cards, write one line: "_No notes yet — fill in the cards on the board to flesh this out._"
-- Keep total length tight. A launch plan that nobody reads is useless.`;
+- Keep total length tight. A launch plan that nobody reads is useless.
+
+Length budget: 600–900 words total. Each prose section 1–3 sentences, each checklist 5–10 items.`;
 
 const PRD_INSTRUCTION =
   "Write the PRD my engineering team can start against. Use the cards I dropped on the board as the source. Don't pad it with generic advice.";
@@ -191,9 +214,9 @@ Output format (strict):
 - Then one markdown heading per zone, in this exact order: ## Problem, ## Users, ## Requirements, ## Acceptance Criteria, ## Open Questions.
 - Inside each heading, write the section using the cards in that zone as your source.
 - Problem + Users: prose. Lead with the most important sentence.
-- Requirements: bulleted checklist. Each line MUST start with MUST, SHOULD, or COULD so the team can sort later.
-- Acceptance Criteria: bulleted checklist. Each item must be testable — describe the observable condition that proves it works.
-- Open Questions: prose paragraph. State each question clearly and call out what decision is blocking on it.
+- Requirements: bulleted checklist. Each line MUST start with MUST, SHOULD, or COULD so the team can sort later. At the end of Requirements, add a line of the form "Non-goals: 1, 2, 3" — things the team might assume are in scope but are not.
+- Acceptance Criteria: bulleted checklist. Each item must be testable — use the format "When [action], the system [observable condition]." so the team can paste it directly into a test.
+- Open Questions: bulleted checklist. One unresolved decision per bullet, with the blocker named.
 - Be specific to their product. No filler. No "this is a placeholder" lines.`;
 
 const RESEARCH_INSTRUCTION =
@@ -206,8 +229,8 @@ Output format (strict):
 - Then one markdown heading per zone, in this exact order: ## Question, ## Evidence, ## Themes, ## Synthesis.
 - Question: prose. State the question, the hypotheses, and what would count as an answer.
 - Evidence: a markdown table with columns Source | Year | Population | Effect / Finding | Risk of bias. One row per evidence card. Keep cells short.
-- Themes: bulleted checklist. Each theme is one pattern that emerges across the evidence.
-- Synthesis: prose. What does the evidence support, what stays open, and the single most informative next experiment.
+- Themes: bulleted checklist. Tag each theme with [H]/[M]/[L] confidence at the start of the bullet — High if multiple converging sources, Medium if plausible but thin, Low if speculative.
+- Synthesis: prose, in this exact order: (1) what the evidence supports, (2) what stays open, (3) the single most informative next experiment.
 - Be honest about weak evidence and disconfirming cases. The user values honesty over false confidence.`;
 
 const CONTENT_INSTRUCTION =
@@ -218,19 +241,25 @@ const CONTENT_SYSTEM = `You write content pieces. The user has dropped an idea, 
 Output format (strict):
 - Title: the working title of the piece.
 - Then one markdown heading per zone, in this exact order: ## Idea, ## Outline, ## Draft, ## Edit, ## Publish.
+- Before drafting, read the Idea card and extract: audience, format (blog post / tweet thread / newsletter / etc.), target word count. State any assumption at the end under "Assumptions:".
 - Idea: prose. Capture the angle in two or three sentences.
 - Outline: bulleted checklist. One bullet per section/beat.
 - Draft: prose. Write the first full pass of the piece. Length matches the request.
-- Edit: bulleted checklist. Concrete edits to make — line-level or structural.
+- Edit: prose. Two to four sentences of concrete edits — line-level or structural. Don't restate the draft.
 - Publish: bulleted checklist. Where it goes, when, who reviews.
-- Match the tone set by the Idea card. Don't over-write.`;
+- Match the tone of the Idea card. If it's terse, be terse. Don't over-write.`;
 
 const TRIAGE_INSTRUCTION =
   "Look at the loose thoughts I dropped and group them into themes. Suggest names for each group.";
 
 const TRIAGE_SYSTEM = `You triage unstructured brain dumps. The user has dropped a pile of loose cards onto a single zone.
 
-Output format: a single bulleted checklist. Each bullet is one themed group, with the format: "- **Group name** — short description of what binds these together". Use the cards on the board as the only source. Don't invent themes. If everything is one theme, say so.`;
+Output format: a single bulleted checklist. Output exactly this shape:
+- **Group name** — short description of what binds these together
+- **Group name** — short description of what binds these together
+- ...
+
+A group must contain 2+ cards. Cards that don't fit any group go under "- **Uncategorized** — short description". Use the cards on the board as the only source. Don't invent themes. If everything is one theme, say so.`;
 
 function render(zones: ZoneSpec[]) {
   return (text: string) => renderStructuredDeliverable(text, zones);
@@ -244,7 +273,7 @@ export const TEMPLATES: Template[] = [
     persona: "founder",
     zones: GTM_ZONES,
     instruction: GTM_INSTRUCTION,
-    systemPrompt: GTM_SYSTEM,
+    systemPrompt: appendUniversalRules(GTM_SYSTEM),
     instantiate: gtm,
     renderOutput: render(GTM_ZONES),
   },
@@ -255,7 +284,7 @@ export const TEMPLATES: Template[] = [
     persona: "pm",
     zones: PRD_ZONES,
     instruction: PRD_INSTRUCTION,
-    systemPrompt: PRD_SYSTEM,
+    systemPrompt: appendUniversalRules(PRD_SYSTEM),
     instantiate: productSpec,
     renderOutput: render(PRD_ZONES),
   },
@@ -266,7 +295,7 @@ export const TEMPLATES: Template[] = [
     persona: "researcher",
     zones: RESEARCH_ZONES,
     instruction: RESEARCH_INSTRUCTION,
-    systemPrompt: RESEARCH_SYSTEM,
+    systemPrompt: appendUniversalRules(RESEARCH_SYSTEM),
     instantiate: research,
     renderOutput: render(RESEARCH_ZONES),
   },
@@ -277,7 +306,7 @@ export const TEMPLATES: Template[] = [
     persona: "generalist",
     zones: CONTENT_ZONES,
     instruction: CONTENT_INSTRUCTION,
-    systemPrompt: CONTENT_SYSTEM,
+    systemPrompt: appendUniversalRules(CONTENT_SYSTEM),
     instantiate: contentPipeline,
     renderOutput: render(CONTENT_ZONES),
   },
@@ -288,7 +317,7 @@ export const TEMPLATES: Template[] = [
     persona: "generalist",
     zones: TRIAGE_ZONES,
     instruction: TRIAGE_INSTRUCTION,
-    systemPrompt: TRIAGE_SYSTEM,
+    systemPrompt: appendUniversalRules(TRIAGE_SYSTEM),
     instantiate: triage,
     renderOutput: render(TRIAGE_ZONES),
   },

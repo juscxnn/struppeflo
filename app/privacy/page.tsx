@@ -18,7 +18,7 @@ const TIERS = [
     subtitle: "Event names and small counts only. No content.",
     rows: [
       ["Page views and demo interactions", "Anonymous, via Vercel Analytics."],
-      ["Product events", "brain_dump, organize, suggest_links, workflow_generated, template_used, xray_opened, prompt_copied, run_started, run_completed, open_in_model, key_connected, tour_completed, waitlist_joined, board_created_blank, result_added_to_board, result_split_into_cards, run_helpful_yes, run_helpful_no, telemetry_opt_in, telemetry_opt_out."],
+      ["Product events", "brain_dump, organize, suggest_links, workflow_generated, template_used, xray_opened, prompt_copied, run_started, run_completed, open_in_claude, key_connected, tour_completed, waitlist_joined, result_added_to_board, result_split_into_cards, run_helpful_yes, run_helpful_no, telemetry_opt_in, telemetry_opt_out."],
       ["Per-run telemetry", "Provider, model, card count, input/output tokens, duration, status. Not the prompt content or output text."],
       ["Outcome feedback", "Thumbs up/down on run results. Optional one-line note (sent only when you submit it)."],
     ],
@@ -33,6 +33,7 @@ const TIERS = [
       ["Per-run outcomes", "Provider, model, prompt fingerprint (sha256 of compiled markdown), output length, thumbs rating."],
       ["Run quality", "Did the user re-run the same prompt? Did they add the result to the board or split it into cards?"],
       ["Session", "Anonymous user id, start/end timestamps, edit count, run count, thumbs distribution, final structure."],
+      ["Consent timestamp", "When the first-run disclosure is shown and whether you opted in. We log the timestamp of the decision (not the board content) so we can prove we surfaced the notice — required for GDPR defensibility. The decision is content-free."],
     ],
   },
   {

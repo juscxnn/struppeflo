@@ -8,22 +8,11 @@ export function Footer() {
           justify-between text-[12.5px] text-[var(--ink-faint)] flex-wrap gap-3"
       >
         <div className="flex items-center gap-4 flex-wrap">
-          <span>made with <span aria-hidden>♡</span></span>
-          <span>·</span>
           <span>
-            An{" "}
-            <a
-              href="https://attiteud.com"
-              target="_blank"
-              rel="noopener"
-              className="font-medium text-[var(--ink-dim)] hover:text-[var(--ink)] transition-colors"
-            >
-              Attiteud
-            </a>{" "}
-            project
+            made with <span aria-label="love">♡</span>
           </span>
           <span>·</span>
-          <span>AGPL-3.0</span>
+          <span>Local-first. Self-hostable. AGPL-3.0.</span>
         </div>
         <div className="flex items-center gap-4">
           <Link

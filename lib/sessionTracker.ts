@@ -40,6 +40,39 @@ const EVENT_TO_ACTION: Record<EditEvent, EditAction> = {
   "board:opened": "board_opened",
 };
 
+const EDITED_AFTER_WINDOW_MS = 5 * 60 * 1000;
+
+// Module-level counter for "edits between this run and the last." RunPanel
+// calls `resetEditsCounter()` at the start of each run; `getEditsBeforeRun()`
+// returns the count captured at run-start (we snapshot it on reset, so
+// concurrent edits don't change the answer).
+let editsBeforeRunSnapshot = 0;
+let liveEditCount = 0;
+
+/**
+ * Number of edits since the last `resetEditsCounter()` call. Callers
+ * (notably RunPanel) reset the counter at run-start and read the value at
+ * run-end to populate the run outcome payload.
+ */
+export function getEditsBeforeRun(): number {
+  return editsBeforeRunSnapshot;
+}
+
+/**
+ * Snapshot the current edit count into the "edits before run" value and
+ * reset the live counter to zero. RunPanel should call this at the start
+ * of every run.
+ */
+export function resetEditsCounter(): void {
+  editsBeforeRunSnapshot = liveEditCount;
+  liveEditCount = 0;
+}
+
+/** Bump the edit counter. Called by the session-tracker effect below. */
+function noteEdit(): void {
+  liveEditCount += 1;
+}
+
 /**
  * Session tracker. Mounts once in the studio shell. Subscribes to all
  * mutation events, counts edits/runs/ratings, and emits session telemetry on
@@ -85,6 +118,7 @@ export function useSessionTracker(): void {
           };
           editsRef.current += 1;
           lastEditRef.current = now;
+          noteEdit();
           sendTelemetry({ kind: "edit", edit: payload });
         }) as Parameters<typeof on>[1]),
       );
@@ -120,16 +154,37 @@ export function useSessionTracker(): void {
     unsubs.push(
       on("run:quality", ((detail: unknown) => {
         const d = detail as
-          | { rating?: 1 | -1; reRun?: boolean; addedToBoard?: boolean; splitIntoCards?: boolean }
+          | {
+              rating?: 1 | -1;
+              reRun?: boolean;
+              addedToBoard?: boolean;
+              splitIntoCards?: boolean;
+              promptFingerprint?: string;
+            }
           | undefined;
         if (d?.rating === 1) upRef.current += 1;
         if (d?.rating === -1) downRef.current += 1;
+        // Use the promptFingerprint the RunPanel captured at run-start
+        // (passed through rememberRunPrompt → reportRunQuality → emit detail).
+        // The hardcoded "00".repeat(32) we used to ship would have silently
+        // broken the per-prompt retention analysis.
+        const promptFingerprint =
+          d?.promptFingerprint && /^[a-f0-9]{64}$/.test(d.promptFingerprint)
+            ? d.promptFingerprint
+            : "00".repeat(32);
+        // "editedAfter" is true if any edit happened within the 5-minute
+        // window before this quality event fired. Quality events only fire
+        // after a run has completed (thumbs / add-to-board / split), so
+        // "the past 5 minutes" reads as "since the run finished."
+        const sinceLastEdit = Date.now() - lastEditRef.current;
+        const editedAfter =
+          lastEditRef.current > 0 && sinceLastEdit <= EDITED_AFTER_WINDOW_MS;
         sendTelemetry({
           kind: "run_quality",
           runQuality: {
-            promptFingerprint: "00".repeat(32),
+            promptFingerprint,
             reRun: !!d?.reRun,
-            editedAfter: false,
+            editedAfter,
             addedToBoard: !!d?.addedToBoard,
             splitIntoCards: !!d?.splitIntoCards,
           },

@@ -58,7 +58,7 @@ export const DivisionView = memo(function DivisionView({
     // only the title bar and resize handles are interactive.
     <div
       ref={rootRef}
-      className="absolute rounded-2xl pointer-events-none"
+      className="division-view absolute rounded-2xl pointer-events-none"
       style={{
         left: division.x,
         top: division.y,

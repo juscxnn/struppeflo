@@ -15,6 +15,11 @@ export const PROXIMITY_THRESHOLD = 48; // world px, rect edge-gap
 export const PROXIMITY_DWELL_MS = 150;
 export const ANCHOR_CORNER_CLAMP = 16;
 
+/** Snap engine. */
+export const SNAP_GRID = 16;
+export const SNAP_ALIGN_PX = 6; // edge / center alignment threshold
+export const ZONE_FIT_PADDING = 28;
+
 /* ------------------------------ Performance ------------------------------ */
 export const PERF_CARD_LIMIT = 40; // blurred cards beyond this → perf mode
 export const PERF_ZOOM_CUTOFF = 0.5;

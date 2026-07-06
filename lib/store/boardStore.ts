@@ -19,6 +19,8 @@ import {
 } from "../constants";
 import { pointInRect } from "../geometry";
 import { emit } from "../events";
+import { fitDivision } from "../snap";
+import { ZONE_FIT_PADDING } from "../constants";
 import type {
   Board,
   Card,
@@ -290,31 +292,71 @@ export function createWorkspaceSlice(
 
     commitMove: (boardId, moves) => {
       if (moves.length === 0) return;
+      const affectedDivisions = new Set<ID>();
       set((s) => {
         const b = s.boards[boardId];
         if (!b) return s;
         const cards = { ...b.cards };
+        const oldMembership = new Map<ID, ID | null>();
+        for (const m of moves) {
+          const card = cards[m.id];
+          if (card) oldMembership.set(card.id, card.divisionId);
+        }
         let z = b.maxZ;
         for (const m of moves) {
           const card = cards[m.id];
           if (!card) continue;
           z += 1;
+          const newDivisionId = divisionForCard(
+            { x: m.x, y: m.y, w: card.w, h: card.h },
+            b.divisions,
+          );
           cards[m.id] = {
             ...card,
             x: m.x,
             y: m.y,
             z,
-            divisionId: divisionForCard(
-              { x: m.x, y: m.y, w: card.w, h: card.h },
-              b.divisions,
-            ),
+            divisionId: newDivisionId,
             updatedAt: Date.now(),
           };
+          const prev = oldMembership.get(card.id) ?? null;
+          if (prev !== newDivisionId) {
+            if (prev) affectedDivisions.add(prev);
+            if (newDivisionId) affectedDivisions.add(newDivisionId);
+          }
         }
         return {
           boards: { ...s.boards, [boardId]: { ...b, cards, maxZ: z } },
         };
       });
+
+      // Auto-fit affected zones to their (now possibly different) membership.
+      if (affectedDivisions.size > 0) {
+        set((s) => {
+          const b = s.boards[boardId];
+          if (!b) return s;
+          const divisions = { ...b.divisions };
+          for (const divId of affectedDivisions) {
+            const division = divisions[divId];
+            if (!division) continue;
+            const members = Object.values(b.cards).filter(
+              (c) => c.divisionId === divId,
+            );
+            const fitted = fitDivision(
+              division,
+              members,
+              ZONE_FIT_PADDING,
+              DIVISION_MIN_W,
+              DIVISION_MIN_H,
+            );
+            if (fitted) {
+              divisions[divId] = { ...division, ...fitted };
+            }
+          }
+          return { boards: { ...s.boards, [boardId]: { ...b, divisions } } };
+        });
+      }
+
       moves.forEach((m) => emit("card:moved", { boardId, cardId: m.id }));
     },
 
@@ -357,6 +399,17 @@ export function createWorkspaceSlice(
           },
         };
       });
+      // Auto-fit the freshly-created zone to any cards now inside it.
+      const fitted = fitDivisionToMembers(get().boards[boardId], division.id);
+      if (fitted) {
+        set((s) => {
+          const b = s.boards[boardId];
+          if (!b) return s;
+          const divisions = { ...b.divisions };
+          divisions[division.id] = { ...divisions[division.id], ...fitted };
+          return { boards: { ...s.boards, [boardId]: { ...b, divisions } } };
+        });
+      }
       emit("division:created", { boardId, divisionId: division.id });
       return division.id;
     },
@@ -598,3 +651,22 @@ export const boardHistory = {
   resume: () => useBoardStore.temporal.getState().resume(),
   clear: () => useBoardStore.temporal.getState().clear(),
 };
+
+function fitDivisionToMembers(
+  board: Board | undefined,
+  divisionId: ID,
+): { x: number; y: number; w: number; h: number } | null {
+  if (!board) return null;
+  const division = board.divisions[divisionId];
+  if (!division) return null;
+  const members = Object.values(board.cards).filter(
+    (c) => c.divisionId === divisionId,
+  );
+  return fitDivision(
+    division,
+    members,
+    ZONE_FIT_PADDING,
+    DIVISION_MIN_W,
+    DIVISION_MIN_H,
+  );
+}

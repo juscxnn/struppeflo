@@ -3,7 +3,13 @@
 import { useMemo, useRef, type RefObject } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
-import { DIVISION_MIN_H, DIVISION_MIN_W, DRAG_THRESHOLD_PX } from "@/lib/constants";
+import {
+  DIVISION_MIN_H,
+  DIVISION_MIN_W,
+  DRAG_THRESHOLD_PX,
+  SNAP_GRID,
+} from "@/lib/constants";
+import { snapToGrid } from "@/lib/snap";
 import type { ID, Rect } from "@/lib/types";
 
 export type Corner = "nw" | "ne" | "sw" | "se";
@@ -26,6 +32,7 @@ export function useDivisionInteractions(
     startRect: { x: 0, y: 0, w: 0, h: 0 } as Rect,
     members: new Map<ID, Rect>(),
     raf: 0,
+    shiftDuringDrag: false,
   });
 
   return useMemo(() => {
@@ -41,7 +48,16 @@ export function useDivisionInteractions(
       const { dx, dy } = worldDelta();
       const r = s.current.startRect;
       const mode = s.current.mode;
-      if (mode === "move") return { ...r, x: r.x + dx, y: r.y + dy };
+      const shift = s.current.shiftDuringDrag;
+      if (mode === "move") {
+        let nx = r.x + dx;
+        let ny = r.y + dy;
+        if (!shift) {
+          nx = snapToGrid(nx, SNAP_GRID);
+          ny = snapToGrid(ny, SNAP_GRID);
+        }
+        return { ...r, x: nx, y: ny };
+      }
       let { x, y, w, h } = r;
       if (mode === "nw" || mode === "sw") {
         const nx = Math.min(x + dx, x + w - DIVISION_MIN_W);
@@ -55,6 +71,12 @@ export function useDivisionInteractions(
         y = ny;
       }
       if (mode === "sw" || mode === "se") h = Math.max(DIVISION_MIN_H, h + dy);
+      if (!shift) {
+        x = snapToGrid(x, SNAP_GRID);
+        y = snapToGrid(y, SNAP_GRID);
+        w = Math.max(snapToGrid(w, SNAP_GRID), DIVISION_MIN_W);
+        h = Math.max(snapToGrid(h, SNAP_GRID), DIVISION_MIN_H);
+      }
       return { x, y, w, h };
     };
 
@@ -102,6 +124,7 @@ export function useDivisionInteractions(
       s.current.mode = mode;
       s.current.moved = false;
       s.current.frameOnly = e.altKey;
+      s.current.shiftDuringDrag = e.shiftKey;
       s.current.startClient = { x: e.clientX, y: e.clientY };
       s.current.latestClient = { x: e.clientX, y: e.clientY };
       s.current.startRect = {
@@ -132,6 +155,7 @@ export function useDivisionInteractions(
 
     const move = (e: ReactPointerEvent<HTMLElement>) => {
       if (!s.current.mode) return;
+      if (e.shiftKey) s.current.shiftDuringDrag = true;
       s.current.latestClient = { x: e.clientX, y: e.clientY };
       if (!s.current.moved) {
         const d = Math.hypot(

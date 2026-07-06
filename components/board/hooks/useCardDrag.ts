@@ -4,9 +4,18 @@ import { useMemo, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
 import { useUIStore } from "@/lib/store/uiStore";
-import { DRAG_THRESHOLD_PX } from "@/lib/constants";
+import {
+  DRAG_THRESHOLD_PX,
+  SNAP_ALIGN_PX,
+  SNAP_GRID,
+} from "@/lib/constants";
 import { anchorsFor, bezierBetween, clamp } from "@/lib/geometry";
 import { divisionForCard } from "@/lib/store/boardStore";
+import {
+  cardRectsExcluding,
+  snapRectToCards,
+  snapToGrid,
+} from "@/lib/snap";
 import type { ID, Rect } from "@/lib/types";
 
 interface DragSnapshot {
@@ -32,6 +41,7 @@ export function useCardDrag(cardId: ID) {
     raf: 0,
     snapshot: null as DragSnapshot | null,
     hoverDivision: null as ID | null,
+    shiftDuringDrag: false,
   });
 
   return useMemo(() => {
@@ -45,11 +55,27 @@ export function useCardDrag(cardId: ID) {
       const dy = (s.current.latestClient.y - s.current.startClient.y) / scale;
       const out = new Map<ID, Rect>();
       const bounds = ctx.policy.bounds;
+      const snapEnabled = !s.current.shiftDuringDrag;
+      const board = ctx.store.getState().boards[ctx.boardId];
+      const candidates = snapEnabled
+        ? cardRectsExcluding(board ?? { cards: {} }, new Set(snap.ids))
+        : [];
       for (const id of snap.ids) {
         const r = snap.start.get(id);
         if (!r) continue;
         let x = r.x + dx;
         let y = r.y + dy;
+        if (snapEnabled) {
+          x = snapToGrid(x, SNAP_GRID);
+          y = snapToGrid(y, SNAP_GRID);
+          const snapped = snapRectToCards(
+            { x, y, w: r.w, h: r.h },
+            candidates,
+            SNAP_ALIGN_PX,
+          );
+          x = snapped.x;
+          y = snapped.y;
+        }
         if (bounds) {
           x = clamp(x, bounds.x, bounds.x + bounds.w - r.w);
           y = clamp(y, bounds.y, bounds.y + bounds.h - r.h);
@@ -207,6 +233,7 @@ export function useCardDrag(cardId: ID) {
 
         s.current.active = true;
         s.current.moved = false;
+        s.current.shiftDuringDrag = false;
         s.current.startClient = { x: e.clientX, y: e.clientY };
         s.current.latestClient = { x: e.clientX, y: e.clientY };
         try {
@@ -219,6 +246,7 @@ export function useCardDrag(cardId: ID) {
 
       onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => {
         if (!s.current.active) return;
+        if (e.shiftKey) s.current.shiftDuringDrag = true;
         s.current.latestClient = { x: e.clientX, y: e.clientY };
         if (!s.current.moved) {
           const dx = e.clientX - s.current.startClient.x;

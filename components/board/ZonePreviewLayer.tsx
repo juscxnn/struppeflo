@@ -5,13 +5,9 @@ import { useCanvas } from "./CanvasProvider";
 import type { ZonePreview } from "./CanvasProvider";
 
 /**
- * World-space SVG rect that previews the zone a dragged card will adopt, at
- * the post-fit size computed from the prospective membership. Drawn dashed so
- * it reads as "this is what would happen" rather than a settled shape.
- *
- * Polls `previewZoneRef` via rAF — sets React state only when the
- * preview appears, disappears, or moves, so the SVG re-renders the same
- * rect a frame later but doesn't thrash on no-op updates.
+ * World-space SVG that previews where a zone will land after the user
+ * drops a card into it. Shows the post-fit size as a dashed accent rect,
+ * with a soft glow and a member-count chip.
  */
 export function ZonePreviewLayer() {
   const ctx = useCanvas();
@@ -41,9 +37,22 @@ export function ZonePreviewLayer() {
     <g
       className="zone-preview"
       style={{
-        animation: "zone-preview-in 150ms ease-out both",
+        animation: "zone-preview-in 120ms ease-out both",
       }}
     >
+      {/* Soft glow halo */}
+      <rect
+        x={preview.rect.x - 4}
+        y={preview.rect.y - 4}
+        width={preview.rect.w + 8}
+        height={preview.rect.h + 8}
+        rx={20}
+        ry={20}
+        fill="var(--accent)"
+        opacity={0.08}
+        style={{ pointerEvents: "none" }}
+      />
+      {/* The preview rect itself — dashed accent */}
       <rect
         x={preview.rect.x}
         y={preview.rect.y}
@@ -52,32 +61,32 @@ export function ZonePreviewLayer() {
         rx={16}
         ry={16}
         fill="var(--accent-soft)"
-        fillOpacity={0.5}
+        fillOpacity={0.6}
         stroke="var(--accent)"
-        strokeWidth={1.5}
-        strokeDasharray="6 5"
-        opacity={0.85}
+        strokeWidth={2}
+        strokeDasharray="6 4"
         style={{ pointerEvents: "none" }}
       />
+      {/* Member-count chip */}
       <g
-        transform={`translate(${preview.rect.x + 12}, ${preview.rect.y + preview.rect.h - 12})`}
+        transform={`translate(${preview.rect.x + 12}, ${preview.rect.y + preview.rect.h - 14})`}
         style={{ pointerEvents: "none" }}
       >
         <rect
-          x={-6}
-          y={-10}
-          width={badgeWidth(preview.memberCount) + 12}
-          height={20}
-          rx={6}
+          x={-4}
+          y={-11}
+          width={badgeWidth(preview.memberCount) + 8}
+          height={22}
+          rx={11}
           fill="var(--surface)"
           stroke="var(--accent)"
-          strokeWidth={1}
+          strokeWidth={1.5}
         />
         <text
           x={0}
           y={0}
           dominantBaseline="central"
-          fontSize={11}
+          fontSize={11.5}
           fontWeight={600}
           fill="var(--accent)"
           style={{ fontFamily: "var(--font-mono, ui-monospace, monospace)" }}
@@ -90,7 +99,6 @@ export function ZonePreviewLayer() {
 }
 
 function badgeWidth(count: number): number {
-  // Rough width estimate so the chip fits "N cards" / "N card".
   const digits = String(count).length;
-  return 6 + digits * 6.5 + 30;
+  return 4 + digits * 7 + 32;
 }

@@ -233,9 +233,19 @@ body {
   to { opacity: 0.85; }
 }
 
+.division-view {
+  transition: left 0.18s ease, top 0.18s ease,
+    width 0.18s ease, height 0.18s ease,
+    box-shadow 0.15s ease, background-color 0.15s ease;
+}
 .division-hover {
-  box-shadow: inset 0 0 0 2px var(--accent) !important;
-  background-color: var(--accent-soft) !important;
+  box-shadow: inset 0 0 0 2px var(--accent),
+    0 0 0 4px rgba(99, 102, 241, 0.08) !important;
+  background-color: rgba(99, 102, 241, 0.10) !important;
+}
+.division-hover > .division-top-stripe {
+  opacity: 1 !important;
+  height: 2px !important;
 }
 
 @keyframes proximity-pulse {

@@ -7,22 +7,23 @@ import { useUIStore } from "@/lib/store/uiStore";
 import { useToast } from "@/components/ui/Toast";
 import { noteDragForSnapHint } from "../SnapHintToast";
 import { DRAG_THRESHOLD_PX, SNAP_ALIGN_PX } from "@/lib/constants";
-import { anchorsFor, bezierBetween, clamp, rectsIntersect } from "@/lib/geometry";
+import { anchorsFor, bezierBetween, clamp } from "@/lib/geometry";
 import { divisionForCard } from "@/lib/store/boardStore";
 import {
   cardRectsExcluding,
+  deOverlap,
   fitDivision,
-  snapRectWithGuides,
+  groupBoundingBox,
+  snapGroupBox,
   type SnapGuide,
 } from "@/lib/snap";
+import { formatGuidePaths } from "../AlignmentGuides";
 import {
   DIVISION_MIN_H,
   DIVISION_MIN_W,
   ZONE_FIT_PADDING,
 } from "@/lib/constants";
 import type { Card, ID, Rect } from "@/lib/types";
-
-const DE_OVERLAP_GAP = 16;
 
 interface DragSnapshot {
   ids: ID[];
@@ -69,66 +70,56 @@ export function useCardDrag(cardId: ID) {
       const board = ctx.store.getState().boards[ctx.boardId];
       const snapEnabled = !s.current.snapDisabled && !!board;
 
-      // Compute tentative positions first.
-      const tentative = new Map<ID, { x: number; y: number }>();
+      // Compute tentative positions for every dragged card.
+      const tentative = new Map<ID, Rect>();
       for (const id of snap.ids) {
         const r = snap.start.get(id);
         if (!r) continue;
-        tentative.set(id, { x: r.x + dx, y: r.y + dy });
+        tentative.set(id, { x: r.x + dx, y: r.y + dy, w: r.w, h: r.h });
       }
+      if (tentative.size === 0) return null;
 
-      // Reference card = leftmost-topmost of the dragged set. The snap
-      // decision is computed ONCE for this card, then applied rigidly to the
-      // whole group, so the group's internal layout never deforms.
-      let refId: ID | null = null;
-      let refX = 0;
-      let refY = 0;
-      for (const id of snap.ids) {
-        const t = tentative.get(id);
-        if (!t) continue;
-        if (refId === null || t.x < refX || (t.x === refX && t.y < refY)) {
-          refId = id;
-          refX = t.x;
-          refY = t.y;
+      // Build the group's bounding box (in world units) and snap THAT.
+      // This is the key change: previously we snapped only the leftmost-
+      // topmost card, which meant a row of cards could never align to a
+      // target that wasn't the leftmost. The box approach matches what
+      // every design tool does.
+      const groupBox: Rect = (() => {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const r of tentative.values()) {
+          if (r.x < minX) minX = r.x;
+          if (r.y < minY) minY = r.y;
+          if (r.x + r.w > maxX) maxX = r.x + r.w;
+          if (r.y + r.h > maxY) maxY = r.y + r.h;
         }
-      }
-      if (refId === null) return null;
+        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+      })();
 
-      // Alignment-only snapping (no grid quantization — that made dragging
-      // feel steppy). Cards align to other cards AND zone edges. Threshold is
-      // constant in SCREEN pixels, so grabbiness is the same at every zoom.
-      let snappedX = refX;
-      let snappedY = refY;
       s.current.guides = [];
-      if (snapEnabled) {
+      let snapDx = 0;
+      let snapDy = 0;
+      if (snapEnabled && board) {
         const dragged = new Set(snap.ids);
         const candidates: Rect[] = cardRectsExcluding(board, dragged);
         for (const d of Object.values(board.divisions)) {
           candidates.push({ x: d.x, y: d.y, w: d.w, h: d.h });
         }
-        const refRect = snap.start.get(refId);
-        if (refRect && candidates.length > 0) {
-          const result = snapRectWithGuides(
-            { x: refX, y: refY, w: refRect.w, h: refRect.h },
-            candidates,
-            SNAP_ALIGN_PX / scale,
-          );
-          snappedX = result.x;
-          snappedY = result.y;
+        if (candidates.length > 0) {
+          const result = snapGroupBox(groupBox, candidates, SNAP_ALIGN_PX / scale);
+          snapDx = result.dx;
+          snapDy = result.dy;
           s.current.guides = result.guides;
         }
       }
 
-      const offsetX = snappedX - refX;
-      const offsetY = snappedY - refY;
-
+      // Apply snap rigidly to every dragged card.
       const out = new Map<ID, Rect>();
       for (const id of snap.ids) {
         const r = snap.start.get(id);
         const t = tentative.get(id);
         if (!r || !t) continue;
-        let x = t.x + offsetX;
-        let y = t.y + offsetY;
+        let x = t.x + snapDx;
+        let y = t.y + snapDy;
         if (bounds) {
           x = clamp(x, bounds.x, bounds.x + bounds.w - r.w);
           y = clamp(y, bounds.y, bounds.y + bounds.h - r.h);
@@ -141,29 +132,19 @@ export function useCardDrag(cardId: ID) {
     const drawGuides = () => {
       const g = ctx.guidesRef.current;
       if (!g) return;
-      const scale = ctx.cameraRef.current.s;
-      const lineW = Math.max(1 / scale, 0.75);
-      const overshoot = 8 / scale;
-      const v = s.current.guides.find((x) => x.axis === "v");
-      const h = s.current.guides.find((x) => x.axis === "h");
+      const paths = formatGuidePaths(s.current.guides);
       if (g.v) {
-        if (v) {
+        if (paths.v) {
+          g.v.setAttribute("d", paths.v);
           g.v.style.display = "";
-          g.v.style.left = `${v.pos - lineW / 2}px`;
-          g.v.style.top = `${v.start - overshoot}px`;
-          g.v.style.width = `${lineW}px`;
-          g.v.style.height = `${v.end - v.start + overshoot * 2}px`;
         } else {
           g.v.style.display = "none";
         }
       }
       if (g.h) {
-        if (h) {
+        if (paths.h) {
+          g.h.setAttribute("d", paths.h);
           g.h.style.display = "";
-          g.h.style.left = `${h.start - overshoot}px`;
-          g.h.style.top = `${h.pos - lineW / 2}px`;
-          g.h.style.width = `${h.end - h.start + overshoot * 2}px`;
-          g.h.style.height = `${lineW}px`;
         } else {
           g.h.style.display = "none";
         }
@@ -344,55 +325,6 @@ export function useCardDrag(cardId: ID) {
         ctx.linkRegistry.notify(id, null);
       }
     };
-
-    /**
- * Resolve overlaps after a multi-card drag. The dragged set keeps its
- * perpendicular-to-axis spacing (so a "row" stays a row) and cascades
- * along the drag axis until no card overlaps any other. Also pushes past
- * resident cards already in the destination zone.
- */
-function deOverlap(
-  dragged: Map<ID, Rect>,
-  others: Map<ID, Rect>,
-  dx: number,
-  dy: number,
-): Map<ID, Rect> {
-  const ids = [...dragged.keys()];
-  if (ids.length < 2) return dragged;
-  const horizontal = Math.abs(dx) > Math.abs(dy) * 1.15;
-  const cmp = (a: ID, b: ID): number => {
-    const ra = dragged.get(a)!;
-    const rb = dragged.get(b)!;
-    return horizontal ? ra.x - rb.x || ra.y - rb.y : ra.y - rb.y || ra.x - rb.x;
-  };
-  const ordered = [...ids].sort(cmp);
-
-  const out = new Map<ID, Rect>();
-  for (const id of ordered) {
-    let r: Rect = { ...dragged.get(id)! };
-    // Push past previously-placed dragged cards.
-    for (let pass = 0; pass < 8; pass++) {
-      let collided = false;
-      for (const other of out.values()) {
-        if (rectsIntersect(r, other)) {
-          if (horizontal) r.x = other.x + other.w + DE_OVERLAP_GAP;
-          else r.y = other.y + other.h + DE_OVERLAP_GAP;
-          collided = true;
-        }
-      }
-      for (const resident of others.values()) {
-        if (rectsIntersect(r, resident)) {
-          if (horizontal) r.x = resident.x + resident.w + DE_OVERLAP_GAP;
-          else r.y = resident.y + resident.h + DE_OVERLAP_GAP;
-          collided = true;
-        }
-      }
-      if (!collided) break;
-    }
-    out.set(id, r);
-  }
-  return out;
-}
 
 const endDrag = (commit: boolean) => {
       if (s.current.raf) {

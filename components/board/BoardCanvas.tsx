@@ -5,6 +5,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { useCanvas } from "./CanvasProvider";
+import { AlignmentGuides } from "./AlignmentGuides";
 import { CardView } from "./CardView";
 import { DivisionView } from "./DivisionView";
 import { FlowLayer } from "./FlowLayer";
@@ -392,23 +393,7 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
           ))}
         </div>
         <SuggestionLayer />
-        {/* Alignment guides (world space, driven by the drag loop). */}
-        <div
-          ref={(el) => {
-            ctx.guidesRef.current.v = el;
-          }}
-          aria-hidden
-          className="absolute top-0 left-0 pointer-events-none z-[9996]"
-          style={{ display: "none", background: "var(--accent)" }}
-        />
-        <div
-          ref={(el) => {
-            ctx.guidesRef.current.h = el;
-          }}
-          aria-hidden
-          className="absolute top-0 left-0 pointer-events-none z-[9996]"
-          style={{ display: "none", background: "var(--accent)" }}
-        />
+        <AlignmentGuides />
         {/* Proximity-link chip (world space, imperatively positioned). */}
         <div
           ref={(el) => {
@@ -452,52 +437,46 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
 }
 
 /**
- * The blank-canvas front door. Nobody should ever stare at an empty void
- * wondering what to do — the two highest-leverage starts are one click away.
+ * The blank-canvas front door. Single primary action + one secondary.
  */
 function EmptyState() {
   const openDump = () => useUIStore.getState().setBrainDumpOpen(true);
   const openTemplates = () => useUIStore.getState().setTemplatePickerOpen(true);
 
   return (
-    <div
-      className="absolute inset-0 flex items-center justify-center
-        pointer-events-none"
-    >
-      <div className="pointer-events-auto text-center max-w-sm px-6 fade-up">
-        <h2 className="text-[19px] font-semibold tracking-tight">
-          What&apos;s on your mind?
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="pointer-events-auto text-center max-w-md px-6 fade-up">
+        <h2 className="text-[22px] font-semibold tracking-tight">
+          Start with one thought.
         </h2>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-dim)]">
-          Dump it all here — messy is fine. Organizing is the easy part.
+        <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--ink-dim)]">
+          Brain dump a list. Each line becomes a card. Group the cards into
+          zones. The canvas turns into a brief the model can finish.
         </p>
-        <div className="mt-5 flex flex-col gap-2">
+        <div className="mt-6 flex flex-col gap-2">
           <button
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={openDump}
-            className="btn-primary h-11 rounded-lg inline-flex items-center
-              justify-center gap-2 text-[14px] font-semibold"
+            className="btn-primary h-11 rounded-lg inline-flex items-center justify-center gap-2 text-[14px] font-semibold"
           >
             <DumpIcon size={16} />
-            Brain dump — one thought per line
+            Brain dump
           </button>
           <button
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={openTemplates}
-            className="glass h-11 rounded-lg inline-flex items-center
-              justify-center gap-2 text-[13.5px] font-medium
-              text-[var(--ink-dim)] hover:text-[var(--ink)]
-              hover:border-[var(--border-strong)]"
+            className="glass h-11 rounded-lg inline-flex items-center justify-center gap-2 text-[13.5px] font-medium text-[var(--ink-dim)] hover:text-[var(--ink)] hover:border-[var(--border-strong)]"
           >
             <CardStackIcon size={16} />
             Start from a template
           </button>
         </div>
-        <p className="mt-4 text-[11.5px] text-[var(--ink-faint)]">
-          or double-click anywhere to drop a card · press{" "}
-          <kbd className="font-medium">N</kbd> for a new card
+        <p className="mt-5 text-[11px] text-[var(--ink-faint)]">
+          Double-click anywhere · or press{" "}
+          <kbd className="font-medium px-1 py-0.5 rounded bg-[var(--glass)] border border-[var(--border)]">N</kbd>
+          {" "}for a card
         </p>
       </div>
     </div>

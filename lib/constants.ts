@@ -17,7 +17,7 @@ export const ANCHOR_CORNER_CLAMP = 16;
 
 /** Snap engine. */
 export const SNAP_GRID = 16;
-export const SNAP_ALIGN_PX = 6; // edge / center alignment threshold
+export const SNAP_ALIGN_PX = 10; // edge / center alignment threshold (screen px)
 export const ZONE_FIT_PADDING = 28;
 
 /* ------------------------------ Performance ------------------------------ */

@@ -75,8 +75,12 @@ export interface GhostRefs {
 }
 
 export interface GuideRefs {
-  v: HTMLDivElement | null;
-  h: HTMLDivElement | null;
+  /** Up to two vertical guide paths (max one per axis that snaps). */
+  v: SVGPathElement | null;
+  /** Up to two horizontal guide paths. */
+  h: SVGPathElement | null;
+  /** Container SVG that wraps the guide paths. */
+  svg: SVGSVGElement | null;
 }
 
 /** Live drag preview: the zone a single dragged card would adopt, and the
@@ -273,7 +277,7 @@ export function CanvasProvider({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const worldRef = useRef<HTMLDivElement | null>(null);
   const ghostRef = useRef<GhostRefs>({ path: null, chip: null });
-  const guidesRef = useRef<GuideRefs>({ v: null, h: null });
+  const guidesRef = useRef<GuideRefs>({ v: null, h: null, svg: null });
   const previewZoneRef = useRef<ZonePreview | null>(null);
   const perfByCountRef = useRef(false);
 

@@ -5,21 +5,17 @@ import { useStore } from "zustand";
 import { useCanvas } from "./CanvasProvider";
 import { Popover } from "@/components/ui/Popover";
 import { FlipIcon, TrashIcon } from "@/components/ui/icons";
-import { anchorsFor, bezierBetween } from "@/lib/geometry";
 import type { ID } from "@/lib/types";
 
-const ORDERED_DESC =
-  "The connected card runs first. Drag a card into this one to flip.";
-const CONNECTED_DESC = "Just related. No order. The compiler figures it out.";
-
 /**
- * Two states, not three:
- *   - depends_on (ordered) — the connected card runs first; arrow on the line.
- *   - related_to (connected) — just related, no order; dashed line, no arrow.
+ * One link concept. The user just connects two cards. Direction is inferred
+ * from spatial position (the compiler reads top-to-bottom, left-to-right).
+ * `related_to` is the default; `depends_on` and `input_to` still exist in the
+ * data model for templates and AI-suggested links, but the UI never exposes
+ * them as a choice.
  *
- * The legacy `input_to` type still exists in the data model and templates use
- * it, but the UI never offers it as a choice — it's a refinement the model
- * makes on its own.
+ * The popover offers two actions: flip which endpoint is "first" in space,
+ * and delete. That's it.
  */
 export function LinkPopover({
   linkId,
@@ -32,7 +28,7 @@ export function LinkPopover({
 }) {
   const ctx = useCanvas();
   const link = useStore(ctx.store, (s) => s.boards[ctx.boardId]?.links[linkId]);
-  const [hover, setHover] = useState<"ordered" | "connected" | null>(null);
+  const [hover, setHover] = useState<"flip" | "delete" | null>(null);
 
   useEffect(() => {
     if (!link) onClose();
@@ -40,112 +36,52 @@ export function LinkPopover({
 
   if (!link) return null;
   const canEdit = ctx.policy.createLinks;
-  const isOrdered = link.type === "depends_on" || link.type === "input_to";
-
-  const setType = (type: "depends_on" | "related_to") => {
-    ctx.store.getState().updateLink(ctx.boardId, linkId, { type });
-  };
-
-  const board = ctx.store.getState().boards[ctx.boardId];
-  const a = board?.cards[link.from];
-  const b = board?.cards[link.to];
 
   return (
     <Popover anchor={{ x: screen.x, y: screen.y, w: 0, h: 0 }} onClose={onClose}>
-      <div
-        className="p-2 w-64"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <div className="text-[10.5px] uppercase tracking-wider font-semibold text-[var(--ink-faint)] mb-1.5">
-          Link
-        </div>
-        <div className="flex flex-col gap-1">
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={() => setType("depends_on")}
-            onMouseEnter={() => setHover("ordered")}
-            onMouseLeave={() => setHover(null)}
-            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left
-              ${isOrdered ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--accent-soft)]"}
-              disabled:opacity-50`}
-          >
-            <span className="shrink-0 inline-flex items-center" style={{ width: 22 }}>
-              <svg width="22" height="14" viewBox="0 0 22 14" fill="none">
-                <line x1="1" y1="7" x2="14" y2="7" stroke="var(--link-depends)" strokeWidth="1.6" />
-                <path d="M14 7 L9 3 M14 7 L9 11" stroke="var(--link-depends)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="min-w-0">
-              <div className="text-[13px] font-medium">Ordered</div>
-              <div className="text-[11.5px] text-[var(--ink-faint)] leading-snug">
-                {hover === "ordered" ? ORDERED_DESC : "This card runs first"}
-              </div>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={() => setType("related_to")}
-            onMouseEnter={() => setHover("connected")}
-            onMouseLeave={() => setHover(null)}
-            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left
-              ${!isOrdered ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--accent-soft)]"}
-              disabled:opacity-50`}
-          >
-            <span className="shrink-0 inline-flex items-center" style={{ width: 22 }}>
-              <svg width="22" height="14" viewBox="0 0 22 14" fill="none">
-                <line x1="2" y1="7" x2="20" y2="7" stroke="var(--link-related)" strokeWidth="1.6" strokeDasharray="4 3" />
-              </svg>
-            </span>
-            <span className="min-w-0">
-              <div className="text-[13px] font-medium">Connected</div>
-              <div className="text-[11.5px] text-[var(--ink-faint)] leading-snug">
-                {hover === "connected" ? CONNECTED_DESC : "Just related. No order."}
-              </div>
-            </span>
-          </button>
-        </div>
-
-        {canEdit && a && b && (
-          <div className="mt-2 pt-2 border-t border-[var(--glass-border)] flex items-center gap-1">
+      <div className="p-1.5 flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+        {canEdit && (
+          <>
             <button
               type="button"
-              title="Flip direction"
+              title="Swap which end is first"
+              onMouseEnter={() => setHover("flip")}
+              onMouseLeave={() => setHover(null)}
               onClick={() =>
-                ctx.store
-                  .getState()
-                  .updateLink(ctx.boardId, linkId, { from: link.to, to: link.from })
+                ctx.store.getState().updateLink(ctx.boardId, linkId, {
+                  from: link.to,
+                  to: link.from,
+                })
               }
-              className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg
-                text-[12px] font-medium text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]
-                hover:text-[var(--ink)]"
+              className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-[12.5px]
+                font-medium transition-colors whitespace-nowrap
+                ${hover === "flip" ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]"}`}
             >
               <FlipIcon size={13} />
-              Flip
+              {hover === "flip" ? "Swap ends" : "Flip"}
             </button>
-            <button
-              type="button"
-              title="Delete link"
-              onClick={() => {
-                ctx.store.getState().deleteLink(ctx.boardId, linkId);
-                onClose();
-              }}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg
-                text-[12px] font-medium text-[var(--ink-dim)]
-                hover:text-[var(--danger)] hover:bg-[rgba(229,72,77,0.1)]"
-            >
-              <TrashIcon size={13} />
-              Delete
-            </button>
-          </div>
+            <div className="w-px h-5 mx-0.5 bg-[var(--glass-border)]" />
+          </>
+        )}
+        {canEdit && (
+          <button
+            type="button"
+            title="Delete link"
+            onMouseEnter={() => setHover("delete")}
+            onMouseLeave={() => setHover(null)}
+            onClick={() => {
+              ctx.store.getState().deleteLink(ctx.boardId, linkId);
+              onClose();
+            }}
+            className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-[12.5px]
+              font-medium transition-colors whitespace-nowrap
+              ${hover === "delete" ? "text-[var(--danger)] bg-[rgba(229,72,77,0.1)]" : "text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]"}`}
+          >
+            <TrashIcon size={13} />
+            Delete
+          </button>
         )}
       </div>
     </Popover>
   );
 }
-
-// Avoid unused import warning when anchorsFor/bezierBetween aren't referenced.
-void anchorsFor;
-void bezierBetween;

@@ -46,21 +46,23 @@ drag cards around. Copy, paste into Claude, keep going.
 The **Run** button closes the loop:
 
 - **No setup:** "Open in Claude" launches claude.ai with the compiled board
-  pre-filled as the prompt.
-- **Bring your own key:** connect an Anthropic API key (Help menu → Connect,
-  or the Run panel) and runs stream directly in-app; results land back on the
-  board as cards. The same key upgrades Organize, Suggest links, and Sparks
-  from local heuristics to real Claude calls — with silent fallback to the
-  heuristics on any failure.
+  pre-filled as the prompt. Also supported: ChatGPT, Gemini, MiniMax, Kimi.
+- **Bring your own key:** connect one or more provider API keys (Help menu →
+  Connect, or the Run panel) and runs stream directly in-app; results land
+  back on the board as cards. The same key upgrades Organize, Suggest links,
+  and Sparks from local heuristics to real model calls — with silent
+  fallback to the heuristics on any failure.
 
-The key is stored in this browser's localStorage and sent only to
-`api.anthropic.com` (browser → Anthropic directly; enforced by the CSP).
+Keys are stored in this browser's localStorage and sent only to the
+provider that owns them (browser → provider directly; enforced by the CSP).
 
 ## Local-first security
 
-- Everything lives in `localStorage`. No account, no server, no telemetry.
-- Strict CSP: `connect-src` allows only `'self'` and `api.anthropic.com` —
-  a browser-enforced guarantee, not a promise.
+- Everything lives in `localStorage`. No account, no server, no telemetry by
+  default. Optional opt-in telemetry is structural-only and documented on
+  `/privacy`.
+- Strict CSP: `connect-src` allows only `'self'` and the supported AI
+  provider APIs — a browser-enforced guarantee, not a promise.
 - Imports are zod-validated, clamped, and re-keyed before touching the board.
 
 ## Development
@@ -96,11 +98,18 @@ backend (shared keys, usage control, MCP integration), the seam is in place:
 1. Implement `app/api/ai/{organize,suggest-links,workflow}/route.ts` with the
    Anthropic API (they currently return `501` with zod-validated bodies).
 2. Set `NEXT_PUBLIC_AI_PROVIDER=api`.
-3. `lib/ai/provider.ts` resolves: user key → `AnthropicProvider` (browser),
+3. `lib/ai/provider.ts` resolves: user key → matching provider (browser),
    else env flag → `ApiAIProvider` (your backend), else local heuristics.
 
 Exposing boards to agents over MCP is the natural v3: the compiler's JSON
 output (`CompiledBoard`) is already the resource an MCP server would serve.
+
+## License
+
+AGPL-3.0. See `LICENSE`. If you run a modified copy as a network service,
+you must publish your source under the same license.
+
+See `/privacy` for the full data-collection posture.
 
 ## Architecture map
 

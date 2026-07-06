@@ -5,11 +5,17 @@ export function ThesisSection() {
         WHY
       </div>
       <h2 className="mt-2 text-[clamp(22px,3.5vw,30px)] font-semibold tracking-tight max-w-xl">
-        Long tasks fail on vague prompts, not weak models.
+        Long-horizon work fails on missing structure, not missing models.
       </h2>
-      <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-dim)] max-w-xl">
-        Struppëflo turns a messy board into sections, dependencies, and an
-        execution order — the structure long-horizon AI work actually needs.
+      <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
+        Frontier models now spend minutes — sometimes hours — on a single
+        task. They can write codebases, run research, plan and execute. The
+        thing that still breaks them is soup: prompts that wander, lose
+        thread, contradict themselves by the third section. Struppëflo gives
+        you the structure by construction. Zones become <em>sections</em>.
+        Links become <em>dependencies</em>. Spatial layout becomes{" "}
+        <em>execution order</em>. The model gets exactly the scaffolding it
+        needs to stay coherent when the task runs long.
       </p>
 
       <div className="mt-8 grid md:grid-cols-2 gap-4 items-stretch">

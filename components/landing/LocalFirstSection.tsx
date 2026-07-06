@@ -5,11 +5,11 @@ const POINTS: Array<[string, string]> = [
   ],
   [
     "Zero backend",
-    "A static app. The security policy blocks every outbound call except api.anthropic.com.",
+    "A static app. The security policy blocks every outbound call except the supported AI provider APIs.",
   ],
   [
-    "Your key, direct",
-    "AI runs on your own Anthropic key, browser to API. Without one, deterministic local heuristics.",
+    "Your keys, direct",
+    "AI runs on your own provider keys, browser to API. Anthropic, OpenAI, Gemini, MiniMax, or Kimi. Without a key, deterministic local heuristics.",
   ],
 ];
 

@@ -22,10 +22,10 @@ export function LandingNav() {
             Why
           </a>
           <a
-            href="#templates"
+            href="#roadmap"
             className="hover:text-[var(--ink)] transition-colors"
           >
-            Templates
+            Roadmap
           </a>
         </div>
         <div className="ml-auto flex items-center gap-1.5 shrink-0">

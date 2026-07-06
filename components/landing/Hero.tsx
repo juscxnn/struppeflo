@@ -10,9 +10,13 @@ export function Hero() {
       >
         The board is the prompt.
       </h1>
-      <p className="mt-4 text-[16px] leading-relaxed text-[var(--ink-dim)] max-w-xl">
-        Drop thoughts as cards. Drag them together to connect them. Struppëflo
-        compiles the layout into a structured prompt — and runs it with Claude.
+      <p className="mt-4 text-[16px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
+        Frontier models are getting longer horizons. The bottleneck is no
+        longer what the model <em>can</em> do — it&apos;s what you can tell it
+        to do without losing coherence. Drop thoughts as cards, drag them
+        together to connect them. Struppëflo compiles the layout into the
+        structured prompt long-horizon AI work actually needs: sections,
+        dependencies, execution order.
       </p>
       <div className="mt-7 flex items-center gap-3">
         <Link
@@ -33,7 +37,7 @@ export function Hero() {
         </a>
       </div>
       <p className="mt-5 text-[12.5px] text-[var(--ink-faint)]">
-        Free · no account · your data stays in this browser
+        Free · no account · runs with Claude, ChatGPT, Gemini, MiniMax, or Kimi
       </p>
     </section>
   );

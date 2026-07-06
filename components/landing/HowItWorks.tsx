@@ -9,7 +9,7 @@ const STEPS: Array<[string, string]> = [
   ],
   [
     "Run",
-    "The board compiles to a structured prompt. Run it with your own key, or open it in Claude.",
+    "The board compiles to a structured prompt. Run it in-app or hand it off to Claude, ChatGPT, Gemini, MiniMax, or Kimi.",
   ],
 ];
 

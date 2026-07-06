@@ -1,12 +1,14 @@
-import { LandingNav } from "@/components/landing/LandingNav";
 import { Hero } from "@/components/landing/Hero";
 import { DemoBoard } from "@/components/landing/DemoBoard";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { ThesisSection } from "@/components/landing/ThesisSection";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
+import { ModelsSection } from "@/components/landing/ModelsSection";
+import { RoadmapSection } from "@/components/landing/RoadmapSection";
 import { LocalFirstSection } from "@/components/landing/LocalFirstSection";
 import { TemplatesRow } from "@/components/landing/TemplatesRow";
 import { Footer } from "@/components/landing/Footer";
+import { LandingNav } from "@/components/landing/LandingNav";
 
 export default function LandingPage() {
   return (
@@ -27,6 +29,8 @@ export default function LandingPage() {
         <HowItWorks />
         <ThesisSection />
         <FeatureGrid />
+        <ModelsSection />
+        <RoadmapSection />
         <LocalFirstSection />
         <TemplatesRow />
       </main>

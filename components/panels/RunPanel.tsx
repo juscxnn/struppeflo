@@ -30,6 +30,9 @@ import {
   PlayIcon,
 } from "@/components/ui/icons";
 import { getModel, PROVIDER_LABELS } from "@/lib/ai/models";
+import { parseOutputAsCards } from "@/lib/outputParser";
+import { sendTelemetry } from "@/lib/telemetry";
+import { buildRunOutcomePayload, computeBoardStructure } from "@/lib/structure";
 
 type RunState = "idle" | "running" | "done" | "error";
 
@@ -97,6 +100,7 @@ export function RunPanel() {
       provider,
       model: aiConfig.model,
     });
+    sendTelemetry({ structure: computeBoardStructure(board) });
     const t0 = Date.now();
     try {
       for await (const evt of streamRun(prompt, controller.signal)) {
@@ -107,12 +111,23 @@ export function RunPanel() {
         }
       }
       setState("done");
+      const durationMs = Date.now() - t0;
       track("run_completed", {
         cards: cardCount,
         provider,
         model: aiConfig.model,
-        duration_ms: Date.now() - t0,
+        duration_ms: durationMs,
       });
+      const outcome = await buildRunOutcomePayload({
+        board,
+        provider,
+        model: aiConfig.model,
+        prompt,
+        outputTokens: Math.ceil(textOutput.length / 4),
+        durationMs,
+        status: "ok",
+      });
+      sendTelemetry({ run: outcome });
     } catch (e) {
       if (controller.signal.aborted) {
         setState(textOutput ? "done" : "idle");
@@ -174,6 +189,53 @@ export function RunPanel() {
           textOutput.length > MAX_BODY
             ? "Result added as a card (trimmed to fit — copy for the full text)."
             : "Result added to the board.",
+        variant: "success",
+      });
+    }
+  };
+
+  const splitIntoCards = () => {
+    const parsed = parseOutputAsCards(textOutput);
+    if (parsed.length === 0) {
+      toast({ message: "Nothing to split.", variant: "warn" });
+      return;
+    }
+    const store = useBoardStore.getState();
+    const center = getCanvas()?.viewportCenterWorld() ?? { x: 0, y: 0 };
+    const divisionId = store.addDivision(store.activeBoardId, {
+      x: Math.round(center.x - 360),
+      y: Math.round(center.y - 240),
+      w: 720,
+      h: 480,
+    }, "Run output");
+    if (!divisionId) return;
+    const ids: string[] = [];
+    let i = 0;
+    for (const section of parsed) {
+      for (const item of section.items) {
+        const row = Math.floor(i / 4);
+        const col = i % 4;
+        const id = store.addCard(store.activeBoardId, {
+          type: "insight",
+          title: section.items.length === 1 ? section.name : `${section.name}: ${item.text.slice(0, 60)}`,
+          body: item.text,
+          x: Math.round(center.x - 340 + col * 180),
+          y: Math.round(center.y - 220 + row * 160),
+          divisionId,
+        });
+        if (id) ids.push(id);
+        i++;
+      }
+    }
+    if (ids.length > 0) {
+      useUIStore.getState().setSelection(ids);
+      track("result_split_into_cards", {
+        cards: cardCount,
+        sections: parsed.length,
+        new_cards: ids.length,
+      });
+      toast({
+        message: `${ids.length} cards across ${parsed.length} sections added under "Run output".`,
         variant: "success",
       });
     }
@@ -377,6 +439,14 @@ export function RunPanel() {
                   font-semibold"
               >
                 Add result to board
+              </button>
+              <button
+                type="button"
+                onClick={splitIntoCards}
+                className="glass h-9 px-3 rounded-lg text-[12.5px]
+                  font-medium text-[var(--ink-dim)] hover:text-[var(--ink)]"
+              >
+                Split into cards
               </button>
               <button
                 type="button"

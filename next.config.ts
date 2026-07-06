@@ -5,9 +5,10 @@ import type { NextConfig } from "next";
  * - `script-src 'unsafe-inline'` is required by Next.js static hydration and the
  *   pre-paint theme-init script. Upgrade path: nonce-based CSP via middleware,
  *   which forces dynamic rendering of every route — deliberately deferred.
- * - `connect-src` allows exactly two origins: ourselves and api.anthropic.com
- *   (for the user's own opt-in API key). The browser refuses every other
- *   cross-origin request even if code regressed — the local-first backstop.
+ * - `connect-src` whitelists only ourselves and the supported AI provider
+ *   APIs. The browser refuses every other cross-origin request even if code
+ *   regressed — the local-first backstop. Add new providers to both this
+ *   list and `lib/ai/models.ts`.
  */
 const isDev = process.env.NODE_ENV === "development";
 
@@ -19,7 +20,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self' https://api.anthropic.com",
+  "connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.MiniMax.io https://api.moonshot.cn",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

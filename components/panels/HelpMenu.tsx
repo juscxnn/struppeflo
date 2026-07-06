@@ -99,7 +99,7 @@ export function HelpMenu({ commands }: { commands: Command[] }) {
               className={item}
               onClick={() => run("connect-ai")}
             >
-              Connect Anthropic key…
+              Connect AI keys…
             </button>
             <div className="h-px my-1 bg-[var(--glass-border)]" />
             <button

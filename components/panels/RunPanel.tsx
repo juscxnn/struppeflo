@@ -7,14 +7,15 @@ import { useUIStore } from "@/lib/store/uiStore";
 import {
   aiConfigServerSnapshot,
   aiConfigSnapshot,
-  AI_MODELS,
+  getProviderKey,
+  modelProvider,
   subscribeAIConfig,
 } from "@/lib/aiConfig";
 import {
   buildHandoffPrompt,
   buildRunPrompt,
   DEFAULT_RUN_INSTRUCTION,
-  openInClaude,
+  openInModel,
   streamRun,
 } from "@/lib/run";
 import { track } from "@/lib/analytics";
@@ -28,14 +29,17 @@ import {
   KeyIcon,
   PlayIcon,
 } from "@/components/ui/icons";
+import { getModel, PROVIDER_LABELS } from "@/lib/ai/models";
 
 type RunState = "idle" | "running" | "done" | "error";
 
-/**
- * The Run panel closes the loop: board → compiled prompt → Claude → result
- * back on the board. With a connected key it streams in-app; without one it
- * hands off to claude.ai with the prompt pre-filled.
- */
+const STARTER_INSTRUCTIONS = [
+  "Produce the deliverable this board describes, worked through to a finished, usable state.",
+  "Critique this plan and propose 3 concrete improvements.",
+  "Convert this into a step-by-step checklist with owners.",
+  "Generate the artifact, then self-review it against the brief.",
+];
+
 export function RunPanel() {
   const open = useUIStore((s) => s.runOpen);
   const board = useBoardStore((s) => s.boards[s.activeBoardId]);
@@ -48,49 +52,70 @@ export function RunPanel() {
 
   const [instruction, setInstruction] = useState(DEFAULT_RUN_INSTRUCTION);
   const [state, setState] = useState<RunState>("idle");
-  const [output, setOutput] = useState("");
+  const [textOutput, setTextOutput] = useState("");
+  const [thinkingOutput, setThinkingOutput] = useState("");
+  const [showThinking, setShowThinking] = useState(false);
   const [error, setError] = useState("");
+  const [rated, setRated] = useState<null | 1 | -1>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const outRef = useRef<HTMLPreElement>(null);
+  const outRef = useRef<HTMLPreElement | null>(null);
 
   useEffect(() => {
-    // Leaving the panel mid-run cancels the request.
     if (!open) {
       abortRef.current?.abort();
       abortRef.current = null;
+      setRated(null);
     }
   }, [open]);
 
   useEffect(() => {
-    // Follow the stream.
     if (state === "running" && outRef.current) {
       outRef.current.scrollTop = outRef.current.scrollHeight;
     }
-  }, [output, state]);
+  }, [textOutput, state]);
 
   if (!open || !board) return null;
 
   const cardCount = Object.keys(board.cards).length;
-  const modelLabel =
-    AI_MODELS.find((m) => m.id === aiConfig.model)?.label ?? aiConfig.model;
+  const modelSpec = getModel(aiConfig.model);
+  const provider = modelProvider(aiConfig.model);
+  const hasKey = !!getProviderKey(provider);
+  const modelLabel = modelSpec?.label ?? aiConfig.model;
 
   const run = async () => {
     const prompt = buildRunPrompt(board, instruction);
     const controller = new AbortController();
     abortRef.current = controller;
     setState("running");
-    setOutput("");
+    setTextOutput("");
+    setThinkingOutput("");
+    setShowThinking(false);
     setError("");
-    track("run_started", { cards: cardCount });
+    setRated(null);
+    track("run_started", {
+      cards: cardCount,
+      provider,
+      model: aiConfig.model,
+    });
+    const t0 = Date.now();
     try {
-      for await (const delta of streamRun(prompt, controller.signal)) {
-        setOutput((prev) => prev + delta);
+      for await (const evt of streamRun(prompt, controller.signal)) {
+        if (evt.kind === "text") {
+          setTextOutput((prev) => prev + evt.delta);
+        } else if (evt.kind === "thinking") {
+          setThinkingOutput((prev) => prev + evt.delta);
+        }
       }
       setState("done");
-      track("run_completed", { cards: cardCount });
+      track("run_completed", {
+        cards: cardCount,
+        provider,
+        model: aiConfig.model,
+        duration_ms: Date.now() - t0,
+      });
     } catch (e) {
       if (controller.signal.aborted) {
-        setState(output ? "done" : "idle");
+        setState(textOutput ? "done" : "idle");
       } else {
         setError(
           e instanceof Error ? e.message : "The run failed — try again.",
@@ -106,13 +131,27 @@ export function RunPanel() {
 
   const handOff = async () => {
     const prompt = buildHandoffPrompt(board, instruction);
-    track("open_in_claude", { cards: cardCount });
-    const how = await openInClaude(prompt);
+    track("open_in_claude", {
+      cards: cardCount,
+      provider,
+      model: aiConfig.model,
+    });
+    const how = await openInModel(provider, prompt);
+    const targetLabel =
+      provider === "anthropic"
+        ? "Claude"
+        : provider === "openai"
+          ? "ChatGPT"
+          : provider === "gemini"
+            ? "Gemini"
+            : provider === "minimax"
+              ? "MiniMax"
+              : "Kimi";
     toast({
       message:
         how === "opened"
-          ? "Opened in Claude with your board pre-filled."
-          : "Prompt copied — paste it into the Claude tab that just opened.",
+          ? `Opened ${targetLabel} with your board pre-filled.`
+          : `Prompt copied — paste it into the ${targetLabel} tab that just opened.`,
       variant: "success",
     });
   };
@@ -123,15 +162,16 @@ export function RunPanel() {
     const id = state.addCard(state.activeBoardId, {
       type: "resource",
       title: `Run result — ${board.name}`,
-      body: output.slice(0, MAX_BODY),
+      body: textOutput.slice(0, MAX_BODY),
       x: Math.round(center.x - CARD_W / 2),
       y: Math.round(center.y - 60),
     });
     if (id) {
       useUIStore.getState().setSelection([id]);
+      track("result_added_to_board", { cards: cardCount });
       toast({
         message:
-          output.length > MAX_BODY
+          textOutput.length > MAX_BODY
             ? "Result added as a card (trimmed to fit — copy for the full text)."
             : "Result added to the board.",
         variant: "success",
@@ -139,9 +179,18 @@ export function RunPanel() {
     }
   };
 
+  const rate = (rating: 1 | -1) => {
+    setRated(rating);
+    track(rating === 1 ? "run_helpful_yes" : "run_helpful_no", {
+      cards: cardCount,
+      provider,
+      model: aiConfig.model,
+    });
+  };
+
   return (
     <div
-      className="glass-strong absolute top-3 right-3 bottom-3 w-[400px]
+      className="glass-strong absolute top-3 right-3 bottom-3 w-[420px]
         max-w-[calc(100vw-24px)] z-40 rounded-xl flex flex-col fade-up"
     >
       <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
@@ -164,7 +213,20 @@ export function RunPanel() {
         </button>
       </div>
 
-      {!aiConfig.apiKey ? (
+      <div className="px-4 pb-2 flex items-center gap-2 text-[11px]">
+        <span className="text-[var(--ink-faint)]">{PROVIDER_LABELS[provider]}</span>
+        <span className="font-medium">{modelLabel}</span>
+        <button
+          type="button"
+          onClick={() => useUIStore.getState().setConnectAIOpen(true)}
+          className="ml-auto text-[11px] font-medium text-[var(--ink-dim)]
+            hover:text-[var(--ink)] hover:underline"
+        >
+          Change
+        </button>
+      </div>
+
+      {!hasKey ? (
         <div className="px-4 pb-4 flex flex-col gap-3">
           <p className="text-[12.5px] leading-relaxed text-[var(--ink-dim)]">
             The compiled board becomes the prompt. Two ways to run it:
@@ -176,7 +238,7 @@ export function RunPanel() {
               justify-center gap-2 text-[13.5px] font-semibold"
           >
             <PlayIcon size={14} />
-            Open in Claude
+            Open in {provider === "anthropic" ? "Claude" : provider === "openai" ? "ChatGPT" : provider === "gemini" ? "Gemini" : provider === "minimax" ? "MiniMax" : "Kimi"}
           </button>
           <button
             type="button"
@@ -187,11 +249,11 @@ export function RunPanel() {
               hover:border-[var(--border-strong)]"
           >
             <KeyIcon size={14} />
-            Connect your Anthropic key — run in-app
+            Connect your {PROVIDER_LABELS[provider]} key — run in-app
           </button>
           <p className="text-[11.5px] leading-snug text-[var(--ink-faint)]">
             With a key, runs stream right here and results land back on the
-            board. The key stays in this browser and talks only to Anthropic.
+            board. The key stays in this browser and talks only to the provider.
           </p>
         </div>
       ) : (
@@ -201,7 +263,7 @@ export function RunPanel() {
               className="text-[11px] font-semibold tracking-wide
                 text-[var(--ink-faint)]"
             >
-              WHAT SHOULD CLAUDE DO WITH THIS BOARD?
+              WHAT SHOULD THE MODEL DO WITH THIS BOARD?
             </label>
             <textarea
               value={instruction}
@@ -213,6 +275,22 @@ export function RunPanel() {
                 border-[var(--glass-border)] px-2.5 py-2 text-[12.5px]
                 leading-relaxed outline-none resize-none disabled:opacity-60"
             />
+            <div className="mt-1 flex flex-wrap gap-1">
+              {STARTER_INSTRUCTIONS.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={state === "running"}
+                  onClick={() => setInstruction(s)}
+                  className="text-[10.5px] px-2 py-1 rounded-full border
+                    border-[var(--border)] text-[var(--ink-faint)]
+                    hover:text-[var(--ink)] hover:border-[var(--border-strong)]
+                    disabled:opacity-40"
+                >
+                  Starter {i + 1}
+                </button>
+              ))}
+            </div>
             <div className="mt-1.5 flex items-center gap-2">
               {state === "running" ? (
                 <button
@@ -242,11 +320,8 @@ export function RunPanel() {
                   text-[var(--ink-faint)] hover:text-[var(--ink)]
                   disabled:opacity-50"
               >
-                Open in Claude instead
+                Open in browser instead
               </button>
-              <span className="ml-auto text-[11px] text-[var(--ink-faint)]">
-                {modelLabel}
-              </span>
             </div>
           </div>
 
@@ -260,6 +335,26 @@ export function RunPanel() {
             </div>
           )}
 
+          {thinkingOutput && (
+            <div className="px-4 pb-2">
+              <button
+                type="button"
+                onClick={() => setShowThinking((v) => !v)}
+                className="text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)]"
+              >
+                {showThinking ? "Hide reasoning" : "Show reasoning"} ·{" "}
+                {thinkingOutput.length.toLocaleString()} chars
+              </button>
+              {showThinking && (
+                <pre className="mt-1 thin-scroll max-h-32 overflow-auto rounded-lg
+                  bg-[var(--glass)] border border-[var(--border)] p-2
+                  text-[11px] font-mono whitespace-pre-wrap text-[var(--ink-dim)]">
+                  {thinkingOutput}
+                </pre>
+              )}
+            </div>
+          )}
+
           <pre
             ref={outRef}
             className="thin-scroll flex-1 overflow-auto mx-2 mb-2 px-3 py-2
@@ -267,14 +362,14 @@ export function RunPanel() {
               text-[12px] leading-relaxed font-sans whitespace-pre-wrap
               text-[var(--ink)] select-text"
           >
-            {output ||
+            {textOutput ||
               (state === "running"
                 ? "Thinking…"
                 : "The result streams here. Your board compiles into the prompt automatically — open the X-Ray (⌘.) to see exactly what gets sent.")}
           </pre>
 
-          {(state === "done" || (state === "error" && output)) && (
-            <div className="px-4 pb-3 flex items-center gap-2">
+          {state === "done" && (
+            <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={addToBoard}
@@ -286,7 +381,7 @@ export function RunPanel() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (await copyText(output)) {
+                  if (await copyText(textOutput)) {
                     toast({ message: "Result copied.", variant: "success" });
                   }
                 }}
@@ -297,6 +392,35 @@ export function RunPanel() {
                 <CopyIcon size={12} />
                 Copy
               </button>
+              <div className="ml-auto flex items-center gap-1">
+                <span className="text-[11px] text-[var(--ink-faint)] mr-1">
+                  Helpful?
+                </span>
+                <button
+                  type="button"
+                  aria-label="Thumbs up"
+                  onClick={() => rate(1)}
+                  className={`h-7 w-7 rounded-md border text-[12px] ${
+                    rated === 1
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                      : "border-[var(--border)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  👍
+                </button>
+                <button
+                  type="button"
+                  aria-label="Thumbs down"
+                  onClick={() => rate(-1)}
+                  className={`h-7 w-7 rounded-md border text-[12px] ${
+                    rated === -1
+                      ? "border-[var(--danger)] bg-[rgba(229,72,77,0.08)]"
+                      : "border-[var(--border)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  👎
+                </button>
+              </div>
             </div>
           )}
         </>

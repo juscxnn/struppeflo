@@ -1,34 +1,29 @@
 "use client";
 
 import type Anthropic from "@anthropic-ai/sdk";
-// The SDK's structured-output helper wants zod v4 schemas; zod 3.25+ ships
-// the v4 API under this subpath, so the rest of the app can stay on v3.
-import { z } from "zod/v4";
-import { getAIConfig } from "../aiConfig";
+import type { AIProvider, Board, Persona, SparkQuestion } from "../types";
 import { layoutOrganizePlan } from "./layout";
 import { planOrganize } from "./cluster";
 import { suggestLinks as localSuggestLinks } from "./linkSuggest";
 import { planWorkflow } from "./workflow";
 import { generateSparks } from "./sparks";
 import { CARD_TYPES, LINK_TYPES } from "../types";
-import type {
-  AIProvider,
-  Board,
-  LinkSuggestion,
-  OrganizePlan,
-  Persona,
-  SparkQuestion,
-  WorkflowPlan,
-} from "../types";
+import type { LinkSuggestion, OrganizePlan, WorkflowPlan } from "../types";
+import { getProviderKey, getAIConfig } from "../aiConfig";
 
 /**
- * Real AI provider: the user's own Anthropic key, called directly from the
- * browser (no proxy — that's the local-first deal). Every method degrades to
- * the deterministic local heuristic on any failure, so AI being down never
- * breaks the product.
+ * Base for browser-direct Anthropic and OpenAI-compatible providers.
+ * Each concrete subclass overrides `apiUrl` (or relies on the SDK for
+ * Anthropic) and how it constructs the request body.
  */
 
-// The SDK is ~60 kB — load it only when a key is actually connected.
+export type StreamEvent =
+  | { kind: "text"; delta: string }
+  | { kind: "thinking"; delta: string }
+  | { kind: "tool_use"; delta: string }
+  | { kind: "usage"; inputTokens: number; outputTokens: number };
+
+// The Anthropic SDK is ~60 kB — load it only when a key is actually connected.
 async function getSdk() {
   const [{ default: AnthropicSdk }, { zodOutputFormat }] = await Promise.all([
     import("@anthropic-ai/sdk"),
@@ -38,17 +33,49 @@ async function getSdk() {
 }
 
 export async function anthropicClient(): Promise<Anthropic | null> {
-  const { apiKey } = getAIConfig();
-  if (!apiKey) return null;
+  const key = getProviderKey("anthropic");
+  if (!key) return null;
   const { AnthropicSdk } = await getSdk();
-  return new AnthropicSdk({ apiKey, dangerouslyAllowBrowser: true });
+  return new AnthropicSdk({ apiKey: key, dangerouslyAllowBrowser: true });
 }
 
-/** Adaptive thinking helps Opus plan; Sonnet 5 defaults to adaptive already. */
-export function thinkingFor(model: string) {
-  return model === "claude-opus-4-8"
-    ? { thinking: { type: "adaptive" as const } }
-    : {};
+/** Cheap key validation: fetch model metadata (no tokens billed). */
+export async function testAIKey(
+  provider: "anthropic" | "openai" | "gemini" | "minimax" | "kimi",
+): Promise<{ ok: boolean; error?: string }> {
+  const key = getProviderKey(provider);
+  if (!key) return { ok: false, error: "No key entered." };
+  try {
+    if (provider === "anthropic") {
+      const client = await anthropicClient();
+      if (!client) return { ok: false, error: "No key entered." };
+      const model = getAIConfig().model;
+      await client.models.retrieve(model);
+      return { ok: true };
+    }
+    if (provider === "gemini") {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`;
+      const r = await fetch(url);
+      return r.ok
+        ? { ok: true }
+        : { ok: false, error: `${r.status} ${r.statusText}`.slice(0, 200) };
+    }
+    // OpenAI-compat: a 1-token request to /v1/models is the cheapest test.
+    const apiUrl =
+      provider === "openai"
+        ? "https://api.openai.com/v1/models"
+        : provider === "minimax"
+          ? "https://api.MiniMax.io/v1/models"
+          : "https://api.moonshot.cn/v1/models";
+    const r = await fetch(apiUrl, { headers: { Authorization: `Bearer ${key}` } });
+    return r.ok
+      ? { ok: true }
+      : { ok: false, error: `${r.status} ${r.statusText}`.slice(0, 200) };
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Could not reach the provider API.";
+    return { ok: false, error: message.slice(0, 200) };
+  }
 }
 
 function truncate(s: string, n: number): string {
@@ -56,7 +83,7 @@ function truncate(s: string, n: number): string {
 }
 
 /** Compact, model-legible board description for structured tasks. */
-function boardBrief(board: Board, opts?: { looseOnly?: boolean }): string {
+export function boardBrief(board: Board, opts?: { looseOnly?: boolean }): string {
   const divisions = Object.values(board.divisions);
   const cards = Object.values(board.cards)
     .filter((c) => !opts?.looseOnly || c.divisionId === null)
@@ -81,34 +108,40 @@ function boardBrief(board: Board, opts?: { looseOnly?: boolean }): string {
   return lines.join("\n");
 }
 
-const organizeSchema = z.object({
-  groups: z.array(
-    z.object({
-      name: z.string(),
-      cardIds: z.array(z.string()),
-    }),
-  ),
-});
+const organizeSchema = z
+  .object({
+    groups: z.array(
+      z.object({
+        name: z.string(),
+        cardIds: z.array(z.string()),
+      }),
+    ),
+  });
 
-const linksSchema = z.object({
-  suggestions: z.array(
-    z.object({
-      from: z.string(),
-      to: z.string(),
-      type: z.enum(LINK_TYPES),
-      reason: z.string(),
-    }),
-  ),
-});
+const linksSchema = z
+  .object({
+    suggestions: z.array(
+      z.object({
+        from: z.string(),
+        to: z.string(),
+        type: z.enum(LINK_TYPES),
+        reason: z.string(),
+      }),
+    ),
+  });
 
-const sparksSchema = z.object({
-  questions: z.array(
-    z.object({
-      question: z.string(),
-      answerType: z.enum(CARD_TYPES),
-    }),
-  ),
-});
+const sparksSchema = z
+  .object({
+    questions: z.array(
+      z.object({
+        question: z.string(),
+        answerType: z.enum(CARD_TYPES),
+      }),
+    ),
+  });
+
+// Lazily import zod so server bundles stay small.
+import { z } from "zod/v4";
 
 export class AnthropicProvider implements AIProvider {
   async organize(board: Board): Promise<OrganizePlan> {
@@ -124,7 +157,9 @@ export class AnthropicProvider implements AIProvider {
       const response = await client.messages.parse({
         model,
         max_tokens: 16000,
-        ...thinkingFor(model),
+        ...(model === "claude-opus-4-8"
+          ? { thinking: { type: "adaptive" as const } }
+          : {}),
         system:
           "You organize planning boards for people who think in scattered fragments. " +
           "Group the loose cards into 2-6 coherent, action-oriented zones. Zone names " +
@@ -142,7 +177,6 @@ export class AnthropicProvider implements AIProvider {
       const parsed = response.parsed_output;
       if (!parsed || parsed.groups.length === 0) return planOrganize(board);
 
-      // Keep only loose-card ids; sweep any the model missed into a catch-all.
       const looseIds = new Set(loose.map((c) => c.id));
       const used = new Set<string>();
       const groups = parsed.groups
@@ -177,7 +211,9 @@ export class AnthropicProvider implements AIProvider {
       const response = await client.messages.parse({
         model,
         max_tokens: 16000,
-        ...thinkingFor(model),
+        ...(model === "claude-opus-4-8"
+          ? { thinking: { type: "adaptive" as const } }
+          : {}),
         system:
           "You find meaningful relationships between cards on a planning board. " +
           'Semantics: "A depends_on B" means B must happen before A. "A input_to B" ' +
@@ -220,8 +256,6 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async generateWorkflow(board: Board): Promise<WorkflowPlan> {
-    // Deliberately local: workflow lanes derive from the compiler's
-    // deterministic ordering — an LLM adds nothing but nondeterminism here.
     return planWorkflow(board);
   }
 

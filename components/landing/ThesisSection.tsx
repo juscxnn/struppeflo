@@ -8,10 +8,9 @@ export function ThesisSection() {
         Frontier models can do the work. They can't guess what you meant.
       </h2>
       <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
-        Long tasks need structure. Sections, order, dependencies. Without them
-        the model wanders. Struppëflo gives you the structure by construction:
-        zones become sections, links become dependencies, layout becomes the
-        order the model reads.
+        Long tasks need structure. Skip it and the model wanders. The canvas
+        enforces it by construction. Zones become sections. Links become
+        dependencies. Position becomes reading order.
       </p>
 
       <div className="mt-8 grid md:grid-cols-2 gap-4 items-stretch">

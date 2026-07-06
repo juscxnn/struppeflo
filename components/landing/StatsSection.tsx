@@ -129,7 +129,7 @@ export function StatsSection() {
           <Counter label="unique prompts" value={stats.outputs} />
         </div>
         <p className="mt-3 text-[11px] text-[var(--ink-faint)] text-center">
-          Live, anonymous counts. No accounts, no tracking cookies.
+          Live. Anonymous. No accounts, no cookies.
         </p>
       </div>
     </div>

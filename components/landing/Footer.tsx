@@ -12,7 +12,7 @@ export function Footer() {
             made with <span aria-label="love">♡</span>
           </span>
           <span>·</span>
-          <span>Local-first. Self-hostable. AGPL-3.0.</span>
+          <span>Local-first · AGPL-3.0</span>
         </div>
         <div className="flex items-center gap-4">
           <Link

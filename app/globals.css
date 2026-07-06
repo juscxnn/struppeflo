@@ -45,8 +45,8 @@
   --card-tint-teal: rgba(13, 148, 136, 0.08);
   --card-tint-rose: rgba(225, 29, 72, 0.06);
 
-  --division-bg: rgba(24, 24, 27, 0.02);
-  --division-border: #e0e0e4;
+  --division-bg: rgba(99, 102, 241, 0.05);
+  --division-border: #d4d4dc;
 
   /* Legacy aliases (chips, inputs, subtle fills). */
   --glass: var(--surface-2);
@@ -94,8 +94,8 @@
   --card-tint-teal: rgba(45, 212, 191, 0.08);
   --card-tint-rose: rgba(251, 113, 133, 0.07);
 
-  --division-bg: rgba(255, 255, 255, 0.02);
-  --division-border: #272727;
+  --division-bg: rgba(99, 102, 241, 0.08);
+  --division-border: #3a3a44;
 }
 
 @theme inline {

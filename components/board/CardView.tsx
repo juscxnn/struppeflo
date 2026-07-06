@@ -180,7 +180,7 @@ export const CardView = memo(function CardView({ cardId }: { cardId: ID }) {
           {...linkDraw}
           className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-5 h-5
             rounded-full border-2 border-[var(--accent)] bg-[var(--surface)]
-            opacity-0 group-hover:opacity-100 transition-opacity
+            opacity-50 group-hover:opacity-100 transition-opacity
             cursor-crosshair z-10 flex items-center justify-center
             text-[var(--accent)] text-[10px] leading-none font-bold"
         >

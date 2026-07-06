@@ -45,6 +45,16 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
     ctx.store,
     useShallow((s) => Object.keys(s.boards[ctx.boardId]?.divisions ?? {})),
   );
+  const looseCount = useStore(
+    ctx.store,
+    useShallow(
+      (s) =>
+        Object.values(s.boards[ctx.boardId]?.cards ?? {}).filter(
+          (c) => c.divisionId === null,
+        ).length,
+    ),
+  );
+  const divisionCount = divisionIds.length;
 
   const gridRef = useRef<HTMLDivElement>(null);
   const rubberRef = useRef<HTMLDivElement>(null);
@@ -60,6 +70,15 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
     ctx.perfByCountRef.current = cardIds.length > PERF_CARD_LIMIT;
     ctx.applyCamera();
   }, [cardIds.length, ctx]);
+
+  /* Auto-enable Flow on the user's second zone — the moment Flow has something
+   * to show, switch it on so the user discovers the feature. */
+  useEffect(() => {
+    if (divisionIds.length >= 2 && !useUIStore.getState().flowAutoShownFor[ctx.boardId]) {
+      useUIStore.getState().setShowFlow(true);
+      useUIStore.getState().markFlowAutoShown(ctx.boardId);
+    }
+  }, [divisionIds.length, ctx.boardId]);
 
   /* Grid follows the camera: background-position/size mutated in applyCamera. */
   const syncGrid = () => {
@@ -418,6 +437,14 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
       {ctx.policy.createCards &&
         cardIds.length === 0 &&
         divisionIds.length === 0 && <EmptyState />}
+
+      {ctx.policy.edit && looseCount > 0 && divisionCount === 1 && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="glass-strong rounded-lg px-3 py-1.5 text-[12px] text-[var(--ink-dim)]">
+            {looseCount} ungrouped thought{looseCount > 1 ? "s" : ""}. Drag into a zone to include them in the prompt.
+          </div>
+        </div>
+      )}
 
       {ctx.policy.edit && <SnapHintToast />}
     </div>

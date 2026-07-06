@@ -1,27 +1,19 @@
 const FEATURES = [
   [
     "Drag to connect",
-    "Pull a card close to another and release. Lines link them.",
+    "Pull a card near another. A line forms between them.",
   ],
   [
     "Zones",
-    "Draw a named region around a group of cards. Each zone becomes a section in the prompt.",
+    "Box a group of cards. Name the zone. It becomes a section.",
   ],
   [
     "Prompt X-Ray",
-    "See the exact prompt your board compiles into. Updates as you drag.",
+    "See the prompt your board compiles into. Updates live as you drag.",
   ],
   [
     "AI organize",
     "Twenty loose cards become named zones in one click. Undoable.",
-  ],
-  [
-    "Five models",
-    "Run with Claude, ChatGPT, Gemini, MiniMax, or Kimi. Same board, your choice.",
-  ],
-  [
-    "Local-first",
-    "Boards live in this browser. Export JSON anytime.",
   ],
 ];
 
@@ -31,7 +23,7 @@ export function FeatureGrid() {
       <div className="text-[11px] font-semibold tracking-[0.14em] text-[var(--ink-faint)]">
         FEATURES
       </div>
-      <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
+      <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-8">
         {FEATURES.map(([title, text]) => (
           <div key={title} className="border-t border-[var(--border)] pt-4">
             <h3 className="text-[14px] font-semibold tracking-tight">{title}</h3>

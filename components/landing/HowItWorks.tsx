@@ -2,17 +2,17 @@ const STEPS = [
   {
     n: "01",
     title: "Drop your thoughts",
-    body: "One card per idea. Messy is fine. Brain dump a list and each line becomes a card.",
+    body: "One card per idea. Brain dump a list. Every line becomes a card.",
   },
   {
     n: "02",
     title: "Arrange",
-    body: "Drag cards close to connect them. Drop them inside named zones to group them.",
+    body: "Drag cards close to link them. Drop them inside a named zone to group them.",
   },
   {
     n: "03",
     title: "Run",
-    body: "The board compiles into a structured prompt. Run it with Claude, ChatGPT, Gemini, MiniMax, or Kimi.",
+    body: "The board compiles into a structured prompt. Sections, dependencies, reading order. Pick a model. Hit run.",
   },
 ];
 

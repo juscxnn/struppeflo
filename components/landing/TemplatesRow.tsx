@@ -16,8 +16,13 @@ export function TemplatesRow() {
       <div className="text-[11px] font-semibold tracking-[0.14em] text-[var(--ink-faint)]">
         TEMPLATES
       </div>
-      <p className="mt-2 text-[14px] text-[var(--ink-dim)]">
-        Each template is a complete job. Pick one and fill in the cards.
+      <h2 className="mt-2 text-[clamp(22px,3.5vw,30px)] font-semibold tracking-tight max-w-xl">
+        Five jobs, pre-structured.
+      </h2>
+      <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
+        Launch plan. PRD. Research synthesis. Content pipeline. Triage. Pick
+        one. The board loads with sections, dependencies, and order set.
+        Fill in the cards.
       </p>
       <div className="mt-6">
         <TemplateGallery
@@ -33,7 +38,7 @@ export function TemplatesRow() {
           href="/studio"
           className="text-[13px] font-medium text-[var(--ink-dim)] hover:text-[var(--ink)] transition-colors"
         >
-          See all {TEMPLATES.length} templates in the Studio →
+          See all 5 templates in the Studio →
         </Link>
       </div>
     </section>

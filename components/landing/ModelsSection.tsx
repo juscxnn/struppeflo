@@ -10,15 +10,15 @@ export function ModelsSection() {
   return (
     <section id="models" className="max-w-5xl mx-auto px-6 py-20 scroll-mt-24">
       <div className="text-[11px] font-semibold tracking-[0.14em] text-[var(--ink-faint)]">
-        MODEL-AGNOSTIC
+        MODELS
       </div>
       <h2 className="mt-2 text-[clamp(22px,3.5vw,30px)] font-semibold tracking-tight max-w-xl">
-        Run with the frontier model you already trust.
+        One board. Five models. Your key.
       </h2>
       <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
-        One board, five model families. Each provider has a tailored system
-        prompt so the compiled board renders cleanly in its native format.
-        Bring your own key — Struppëflo never sees it.
+        Tailored system prompt per provider, so the compiled board renders in
+        its native format. Bring your own key. Browser to API direct, no
+        proxy.
       </p>
 
       <div className="mt-8 glass rounded-xl overflow-hidden">

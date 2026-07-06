@@ -27,6 +27,9 @@ interface UIState {
   templatePickerOpen: boolean;
   /** Show the execution-flow overlay on the board (numbered zones + arrows). */
   showFlow: boolean;
+  /** Whether Flow has been auto-shown for each board (so we don't keep
+   *  flipping it on after the user has dismissed it once). */
+  flowAutoShownFor: Record<ID, boolean>;
   /** Past-runs drawer (sliding right-rail). */
   runsDrawerOpen: boolean;
   /** Which template a board was seeded from (feeds spark questions). */
@@ -51,6 +54,7 @@ interface UIState {
   setConnectAIOpen: (open: boolean) => void;
   setTemplatePickerOpen: (open: boolean) => void;
   setShowFlow: (show: boolean) => void;
+  markFlowAutoShown: (boardId: ID) => void;
   setRunsDrawerOpen: (open: boolean) => void;
   setBoardTemplate: (boardId: ID, templateId: string) => void;
 }
@@ -86,6 +90,7 @@ export const useUIStore = create<UIState>()(
       connectAIOpen: false,
       templatePickerOpen: false,
       showFlow: false,
+      flowAutoShownFor: {},
       runsDrawerOpen: false,
       boardTemplates: {},
 
@@ -135,6 +140,10 @@ export const useUIStore = create<UIState>()(
       setConnectAIOpen: (open) => set({ connectAIOpen: open }),
       setTemplatePickerOpen: (open) => set({ templatePickerOpen: open }),
       setShowFlow: (show) => set({ showFlow: show }),
+      markFlowAutoShown: (boardId) =>
+        set((s) => ({
+          flowAutoShownFor: { ...s.flowAutoShownFor, [boardId]: true },
+        })),
       setRunsDrawerOpen: (open) => set({ runsDrawerOpen: open }),
       setBoardTemplate: (boardId, templateId) =>
         set((s) => ({

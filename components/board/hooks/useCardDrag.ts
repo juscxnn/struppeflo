@@ -7,7 +7,7 @@ import { useUIStore } from "@/lib/store/uiStore";
 import { useToast } from "@/components/ui/Toast";
 import { noteDragForSnapHint } from "../SnapHintToast";
 import { DRAG_THRESHOLD_PX, SNAP_ALIGN_PX } from "@/lib/constants";
-import { anchorsFor, bezierBetween, clamp } from "@/lib/geometry";
+import { anchorsFor, bezierBetween, clamp, rectsIntersect } from "@/lib/geometry";
 import { divisionForCard } from "@/lib/store/boardStore";
 import {
   cardRectsExcluding,
@@ -21,6 +21,8 @@ import {
   ZONE_FIT_PADDING,
 } from "@/lib/constants";
 import type { Card, ID, Rect } from "@/lib/types";
+
+const DE_OVERLAP_GAP = 16;
 
 interface DragSnapshot {
   ids: ID[];
@@ -189,6 +191,8 @@ export function useCardDrag(cardId: ID) {
         ctx.linkRegistry.notify(id, r);
       }
       drawGuides();
+      // Proximity link detection (single-card only — for groups it would be
+      // noisy and unclear which member is the link source).
       if (snap.ids.length === 1) {
         const r = rects.get(snap.ids[0]);
         if (r) {
@@ -198,29 +202,45 @@ export function useCardDrag(cardId: ID) {
             ctx.policy.createLinks &&
               useUIStore.getState().proximityLinkingEnabled,
           );
-          // Highlight the division that would adopt the card on drop, and
-          // publish a post-fit zone preview so the ZonePreviewLayer can show
-          // the user exactly where the zone will land.
-          const board = ctx.store.getState().boards[ctx.boardId];
-          const hover = board ? divisionForCard(r, board.divisions) : null;
-          if (hover !== s.current.hoverDivision) {
-            setDivisionHover(s.current.hoverDivision, false);
-            setDivisionHover(hover, true);
-            s.current.hoverDivision = hover;
-          }
-          updatePreviewZone(board, hover, r, snap.ids[0]);
         }
+      }
+      // Zone preview + hover highlight for ANY drag size. Use the bounding
+      // box center for groups — single card uses the card's own center.
+      const draggedRects: Array<Rect & { id: ID }> = [];
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const id of snap.ids) {
+        const r = rects.get(id);
+        if (!r) continue;
+        draggedRects.push({ ...r, id });
+        if (r.x < minX) minX = r.x;
+        if (r.y < minY) minY = r.y;
+        if (r.x + r.w > maxX) maxX = r.x + r.w;
+        if (r.y + r.h > maxY) maxY = r.y + r.h;
+      }
+      if (draggedRects.length > 0) {
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const probe: Rect = { x: cx - 1, y: cy - 1, w: 2, h: 2 };
+        const board = ctx.store.getState().boards[ctx.boardId];
+        const hover = board
+          ? divisionForCard(probe, board.divisions)
+          : null;
+        if (hover !== s.current.hoverDivision) {
+          setDivisionHover(s.current.hoverDivision, false);
+          setDivisionHover(hover, true);
+          s.current.hoverDivision = hover;
+        }
+        updatePreviewZone(board, hover, draggedRects);
       }
     };
 
     const updatePreviewZone = (
       board: ReturnType<typeof ctx.store.getState>["boards"][string] | undefined,
       hover: ID | null,
-      draggedRect: Rect,
-      draggedId: ID,
+      draggedRects: ReadonlyArray<Rect & { id: ID }>,
     ) => {
       const ref = ctx.previewZoneRef;
-      if (!board || !hover) {
+      if (!board || !hover || draggedRects.length === 0) {
         if (ref.current !== null) ref.current = null;
         return;
       }
@@ -229,23 +249,20 @@ export function useCardDrag(cardId: ID) {
         if (ref.current !== null) ref.current = null;
         return;
       }
-      // Prospective membership: current members of `division` (excluding the
-      // dragged card if it already belongs) + the dragged card at its new rect.
+      const draggedIds = new Set(draggedRects.map((r) => r.id));
+      // Prospective membership: current members of `division` + all dragged
+      // cards at their live positions. Works for both single and multi drags.
       const members: Card[] = [];
       for (const card of Object.values(board.cards)) {
-        if (card.id === draggedId) continue;
+        if (draggedIds.has(card.id)) continue;
         if (card.divisionId === hover) {
           members.push({ ...card });
         }
       }
-      // Synthetic card at the live drag rect, ready for the auto-fit math.
-      const draggedCard = board.cards[draggedId];
-      if (draggedCard) {
-        members.push({
-          ...draggedCard,
-          x: draggedRect.x,
-          y: draggedRect.y,
-        });
+      for (const r of draggedRects) {
+        const draggedCard = board.cards[r.id];
+        if (!draggedCard) continue;
+        members.push({ ...draggedCard, x: r.x, y: r.y });
       }
       const fitted = fitDivision(
         division,
@@ -328,7 +345,56 @@ export function useCardDrag(cardId: ID) {
       }
     };
 
-    const endDrag = (commit: boolean) => {
+    /**
+ * Resolve overlaps after a multi-card drag. The dragged set keeps its
+ * perpendicular-to-axis spacing (so a "row" stays a row) and cascades
+ * along the drag axis until no card overlaps any other. Also pushes past
+ * resident cards already in the destination zone.
+ */
+function deOverlap(
+  dragged: Map<ID, Rect>,
+  others: Map<ID, Rect>,
+  dx: number,
+  dy: number,
+): Map<ID, Rect> {
+  const ids = [...dragged.keys()];
+  if (ids.length < 2) return dragged;
+  const horizontal = Math.abs(dx) > Math.abs(dy) * 1.15;
+  const cmp = (a: ID, b: ID): number => {
+    const ra = dragged.get(a)!;
+    const rb = dragged.get(b)!;
+    return horizontal ? ra.x - rb.x || ra.y - rb.y : ra.y - rb.y || ra.x - rb.x;
+  };
+  const ordered = [...ids].sort(cmp);
+
+  const out = new Map<ID, Rect>();
+  for (const id of ordered) {
+    let r: Rect = { ...dragged.get(id)! };
+    // Push past previously-placed dragged cards.
+    for (let pass = 0; pass < 8; pass++) {
+      let collided = false;
+      for (const other of out.values()) {
+        if (rectsIntersect(r, other)) {
+          if (horizontal) r.x = other.x + other.w + DE_OVERLAP_GAP;
+          else r.y = other.y + other.h + DE_OVERLAP_GAP;
+          collided = true;
+        }
+      }
+      for (const resident of others.values()) {
+        if (rectsIntersect(r, resident)) {
+          if (horizontal) r.x = resident.x + resident.w + DE_OVERLAP_GAP;
+          else r.y = resident.y + resident.h + DE_OVERLAP_GAP;
+          collided = true;
+        }
+      }
+      if (!collided) break;
+    }
+    out.set(id, r);
+  }
+  return out;
+}
+
+const endDrag = (commit: boolean) => {
       if (s.current.raf) {
         cancelAnimationFrame(s.current.raf);
         s.current.raf = 0;
@@ -348,10 +414,30 @@ export function useCardDrag(cardId: ID) {
       ctx.history.resume();
 
       if (snap && rects) {
+        // Detect drag axis + de-overlap before commit. Without this, dragging
+        // a packed group into a zone drops cards on top of each other (and
+        // on top of any existing zone members).
+        let finalRects = rects;
+        if (snap.ids.length >= 2) {
+          const startRef = snap.start.get(snap.ids[0])!;
+          const endRef = rects.get(snap.ids[0])!;
+          const dx = endRef.x - startRef.x;
+          const dy = endRef.y - startRef.y;
+          const otherCards = new Map<ID, Rect>();
+          const board = ctx.store.getState().boards[ctx.boardId];
+          if (board) {
+            for (const c of Object.values(board.cards) as Card[]) {
+              if (snap.ids.includes(c.id)) continue;
+              otherCards.set(c.id, { x: c.x, y: c.y, w: c.w, h: c.h });
+            }
+          }
+          finalRects = deOverlap(rects, otherCards, dx, dy);
+        }
+
         ctx.store.getState().commitMove(
           ctx.boardId,
           snap.ids.map((id) => {
-            const r = rects.get(id)!;
+            const r = finalRects.get(id)!;
             return { id, x: r.x, y: r.y };
           }),
         );

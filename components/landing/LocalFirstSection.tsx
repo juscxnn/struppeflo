@@ -1,7 +1,7 @@
 const POINTS: Array<[string, string]> = [
-  ["Local-first", "Boards live in this browser. Export JSON anytime."],
-  ["Zero backend", "A static app. Strict CSP blocks every call except the AI providers you connect."],
-  ["Your keys", "AI runs on your own provider key. Browser to API direct. Struppëflo never sees it."],
+  ["Boards stay here", "Boards live in this browser. Export JSON anytime."],
+  ["No backend", "Static app. CSP blocks every call except the AI providers you connect."],
+  ["Your key, your call", "AI runs on your provider key. Browser to API direct. No proxy, no logs."],
 ];
 
 export function LocalFirstSection() {

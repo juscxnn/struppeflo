@@ -119,14 +119,14 @@ function DemoXRay({ store }: { store: WorkspaceStore }) {
           className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"
         />
         <span className="text-[12.5px] font-semibold tracking-tight">
-          Compiled prompt — live
+          Live compiled prompt
         </span>
         <button
           type="button"
           aria-label="Copy compiled prompt"
           onClick={async () => {
-            if (await copyText(markdown)) {
-              toast({ message: "Copied — try it in Claude.", variant: "success" });
+if (await copyText(markdown)) {
+                toast({ message: "Copied. Try it in Claude.", variant: "success" });
             } else {
               toast({ message: "Couldn't access the clipboard.", variant: "error" });
             }
@@ -147,8 +147,8 @@ function DemoXRay({ store }: { store: WorkspaceStore }) {
         {markdown}
       </pre>
       <div className="mt-2 text-[11px] leading-snug text-[var(--ink-faint)]">
-        Drag a card into the other zone, or close to another card until it
-        glows — the prompt restructures itself.
+        Drag a card into a different zone, or near another until it glows.
+        The prompt rewrites itself.
       </div>
     </>
   );

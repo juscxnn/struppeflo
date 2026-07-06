@@ -106,6 +106,14 @@ export function Toolbar() {
       >
         <FrameIcon size={15} />
       </ToolButton>
+      <ToolButton
+        label="Flow order"
+        hint="Show execution order on the board"
+        active={showFlow}
+        onClick={() => useUIStore.getState().setShowFlow(!showFlow)}
+      >
+        <FlowIcon size={15} />
+      </ToolButton>
 
       <div className="w-px h-5 mx-1 bg-[var(--glass-border)]" />
 
@@ -126,12 +134,12 @@ export function Toolbar() {
         <LinkIcon size={15} />
       </ToolButton>
       <ToolButton
-        label="Workflow"
+        label="Generate workflow"
         hint="AI — dependency-ordered lanes in a new tab"
         busy={aiBusy === "workflow"}
         onClick={() => void runGenerateWorkflow(toast)}
       >
-        <FlowIcon size={15} />
+        <SparklesIcon size={15} />
       </ToolButton>
 
       <div className="w-px h-5 mx-1 bg-[var(--glass-border)]" />
@@ -151,14 +159,6 @@ export function Toolbar() {
         onClick={() => useUIStore.getState().setXrayOpen(!xrayOpen)}
       >
         <XRayIcon size={15} />
-      </ToolButton>
-      <ToolButton
-        label="Flow"
-        hint="Show execution order on the board"
-        active={showFlow}
-        onClick={() => useUIStore.getState().setShowFlow(!showFlow)}
-      >
-        <FlowIcon size={15} />
       </ToolButton>
       <ToolButton
         label="Runs"

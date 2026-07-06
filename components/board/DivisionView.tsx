@@ -68,6 +68,13 @@ export const DivisionView = memo(function DivisionView({
         border: "1px solid var(--division-border)",
       }}
     >
+      {/* Top accent stripe — gives the zone a visual identity even before
+          the user reads the name. Like a Finder folder tab. */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl pointer-events-none"
+        style={{ background: "var(--accent)", opacity: 0.55 }}
+      />
       <div
         {...(editable ? moveHandlers : {})}
         className={`pointer-events-auto group absolute top-0 left-0 right-0 h-11
@@ -141,7 +148,7 @@ export const DivisionView = memo(function DivisionView({
             key={corner}
             {...resizeHandlers(corner)}
             className={`pointer-events-auto absolute w-3.5 h-3.5 rounded-full
-              opacity-0 hover:opacity-100 bg-[var(--accent)] ${CORNER_POS[corner]}`}
+              opacity-40 hover:opacity-100 bg-[var(--accent)] ${CORNER_POS[corner]}`}
           />
         ))}
     </div>

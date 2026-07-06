@@ -50,8 +50,8 @@ export function HelpMenu({ commands }: { commands: Command[] }) {
           const r = e.currentTarget.getBoundingClientRect();
           setAnchor({ x: r.x, y: r.y, w: r.width, h: r.height });
         }}
-        className="absolute bottom-5 right-5 z-40 w-10 h-10 glass-strong glass-blur
-          rounded-full inline-flex items-center justify-center
+        className="glass-strong absolute bottom-5 right-5 z-40 w-10 h-10
+          rounded-lg inline-flex items-center justify-center
           text-[var(--ink-dim)] hover:text-[var(--ink)]"
       >
         <HelpIcon size={17} />
@@ -141,8 +141,8 @@ export function HelpMenu({ commands }: { commands: Command[] }) {
                 variant: "info",
               });
             }}
-            className="mt-4 h-9 px-4 rounded-full text-[13px] font-semibold text-white
-              bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)] w-full"
+            className="btn-primary mt-4 h-9 px-4 rounded-lg text-[13px]
+              font-semibold w-full"
           >
             Got it
           </button>

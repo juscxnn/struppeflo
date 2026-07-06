@@ -40,7 +40,7 @@ export function Dialog({
         // Click on the backdrop (the dialog element itself) closes.
         if (e.target === ref.current) onClose();
       }}
-      className={`glass-strong glass-blur rounded-[20px] p-0 m-auto
+      className={`glass-strong rounded-xl p-0 m-auto
         text-[var(--ink)] outline-none ${className}`}
     >
       {open ? children : null}

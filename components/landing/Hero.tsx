@@ -10,8 +10,7 @@ export function Hero() {
       >
         <span
           aria-hidden
-          className="w-2 h-2 rounded-full bg-gradient-to-b from-[var(--accent)]
-            to-[var(--accent-2)]"
+          className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"
         />
         A thinking canvas that compiles into AI context
       </div>
@@ -23,12 +22,7 @@ export function Hero() {
       >
         Think in space.
         <br />
-        <span
-          className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]
-            bg-clip-text text-transparent"
-        >
-          Ship in structure.
-        </span>
+        <span className="text-[var(--ink-faint)]">Ship in structure.</span>
       </h1>
 
       <p
@@ -36,7 +30,7 @@ export function Hero() {
           text-[var(--ink-dim)] max-w-2xl mx-auto"
         style={{ animationDelay: "0.12s" }}
       >
-        Struppëflo turns scattered thoughts into glass cards on an infinite
+        Struppëflo turns scattered thoughts into cards on an infinite
         canvas — link them by dragging close, group them into zones — then{" "}
         <strong className="text-[var(--ink)] font-semibold">compiles</strong>{" "}
         your arrangement into a structured, dependency-ordered prompt that
@@ -49,19 +43,18 @@ export function Hero() {
       >
         <Link
           href="/studio"
-          className="h-12 px-7 inline-flex items-center gap-2 rounded-full
-            text-[15px] font-semibold text-white
-            bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]
-            hover:brightness-110 transition-[filter]
-            shadow-[0_8px_24px_rgba(91,95,242,0.4)]"
+          className="btn-primary h-11 px-6 inline-flex items-center gap-2
+            rounded-lg text-[14.5px] font-semibold"
         >
           Open the Studio
           <ArrowRightIcon size={16} />
         </Link>
         <a
           href="#demo"
-          className="h-12 px-6 inline-flex items-center rounded-full text-[14.5px]
-            font-semibold glass-strong glass-blur hover:brightness-105"
+          className="glass h-11 px-5 inline-flex items-center rounded-lg
+            text-[14px] font-medium text-[var(--ink-dim)]
+            hover:text-[var(--ink)] hover:border-[var(--border-strong)]
+            transition-colors"
         >
           Try the live demo ↓
         </a>

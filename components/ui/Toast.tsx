@@ -73,8 +73,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="toast-in pointer-events-auto glass-strong glass-blur
-              rounded-xl pl-4 pr-2 py-2 flex items-center gap-2.5
+            className="toast-in pointer-events-auto glass-strong
+              rounded-lg pl-4 pr-2 py-2 flex items-center gap-2.5
               text-[13.5px] text-[var(--ink)] max-w-[calc(100vw-32px)] sm:max-w-md"
           >
             {VARIANT_ICON[t.variant ?? "info"]}

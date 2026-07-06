@@ -48,10 +48,11 @@ export function FeatureGrid() {
       </h2>
       <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {FEATURES.map((f) => (
-          <div key={f.title} className="glass-card rounded-3xl p-5">
+          <div key={f.title} className="glass-card rounded-xl p-5">
             <span
-              className="w-9 h-9 rounded-xl inline-flex items-center justify-center
-                text-[var(--accent)] bg-[var(--accent-soft)]"
+              className="w-9 h-9 rounded-lg inline-flex items-center justify-center
+                text-[var(--accent)] bg-[var(--accent-soft)]
+                border border-[var(--border)]"
             >
               <f.icon size={17} />
             </span>

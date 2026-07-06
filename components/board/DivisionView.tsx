@@ -58,7 +58,7 @@ export const DivisionView = memo(function DivisionView({
     // only the title bar and resize handles are interactive.
     <div
       ref={rootRef}
-      className="absolute rounded-3xl pointer-events-none"
+      className="absolute rounded-2xl pointer-events-none"
       style={{
         left: division.x,
         top: division.y,
@@ -66,13 +66,12 @@ export const DivisionView = memo(function DivisionView({
         height: division.h,
         background: `linear-gradient(${tint}, ${tint}), var(--division-bg)`,
         border: "1px solid var(--division-border)",
-        boxShadow: "inset 0 1px 0 var(--glass-inset)",
       }}
     >
       <div
         {...(editable ? moveHandlers : {})}
         className={`pointer-events-auto group absolute top-0 left-0 right-0 h-11
-          flex items-center gap-2 px-4 rounded-t-3xl select-none
+          flex items-center gap-2 px-4 rounded-t-2xl select-none
           ${editable ? "cursor-grab" : ""}`}
       >
         {editingName ? (
@@ -113,8 +112,8 @@ export const DivisionView = memo(function DivisionView({
           </button>
         )}
         <span
-          className="text-[11px] text-[var(--ink-faint)] font-medium rounded-full
-            px-1.5 py-0.5 bg-[var(--glass)]"
+          className="text-[11px] text-[var(--ink-faint)] font-medium rounded-md
+            px-1.5 py-0.5 bg-[var(--glass)] border border-[var(--border)]"
         >
           {memberCount}
         </span>

@@ -14,12 +14,13 @@ export function ThesisSection() {
       </p>
 
       <div className="mt-10 grid md:grid-cols-2 gap-4 items-stretch">
-        <div className="glass rounded-3xl p-6 flex flex-col">
+        <div className="glass rounded-xl p-6 flex flex-col">
           <div className="text-[11.5px] font-semibold tracking-wide text-[var(--danger)]">
             WHAT YOU'D TYPE INTO CHAT
           </div>
           <div
-            className="mt-3 flex-1 rounded-2xl bg-[var(--glass)] p-4 text-[13px]
+            className="mt-3 flex-1 rounded-lg bg-[var(--glass)] border
+              border-[var(--border)] p-4 text-[13px]
               leading-relaxed text-[var(--ink-dim)] italic"
           >
             &ldquo;ok so I need a GTM plan but first there&apos;s the audience
@@ -32,12 +33,13 @@ export function ThesisSection() {
           </div>
         </div>
 
-        <div className="glass rounded-3xl p-6 flex flex-col">
+        <div className="glass rounded-xl p-6 flex flex-col">
           <div className="text-[11.5px] font-semibold tracking-wide text-[var(--accent)]">
             WHAT STRUPPËFLO COMPILES
           </div>
           <pre
-            className="mt-3 flex-1 rounded-2xl bg-[var(--glass)] p-4 text-[11px]
+            className="mt-3 flex-1 rounded-lg bg-[var(--glass)] border
+              border-[var(--border)] p-4 text-[11px]
               leading-relaxed font-mono whitespace-pre-wrap text-[var(--ink-dim)]
               overflow-x-auto"
           >

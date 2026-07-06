@@ -42,8 +42,11 @@ export function DemoBoard() {
 
   return (
     <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-4 items-stretch">
-      <div className="glass-strong rounded-3xl p-3 relative">
-        <div ref={frameRef} className="relative overflow-hidden rounded-2xl">
+      <div className="glass-strong rounded-xl p-3 relative">
+        <div
+          ref={frameRef}
+          className="relative overflow-hidden rounded-lg border border-[var(--border)]"
+        >
           <div style={{ height: WORLD_H * scale }}>
             {store ? (
               // Keyed by scale: the camera is seeded once per mount, so a
@@ -68,15 +71,15 @@ export function DemoBoard() {
         <button
           type="button"
           onClick={() => setGeneration((g) => g + 1)}
-          className="absolute bottom-6 right-6 z-40 h-8 px-3 rounded-full glass-strong
-            glass-blur text-[12px] font-medium text-[var(--ink-dim)]
-            hover:text-[var(--ink)]"
+          className="glass absolute bottom-6 right-6 z-40 h-8 px-3 rounded-lg
+            text-[12px] font-medium text-[var(--ink-dim)]
+            hover:text-[var(--ink)] hover:border-[var(--border-strong)]"
         >
           Reset demo
         </button>
       </div>
 
-      <div className="glass-strong rounded-3xl p-4 flex flex-col min-h-[320px]">
+      <div className="glass-strong rounded-xl p-4 flex flex-col min-h-[320px]">
         {store ? (
           <DemoXRay store={store} />
         ) : (
@@ -137,9 +140,9 @@ function DemoXRay({ store }: { store: WorkspaceStore }) {
       </div>
       <pre
         ref={preRef}
-        className="thin-scroll flex-1 overflow-auto rounded-xl px-3 py-2 max-h-[480px]
+        className="thin-scroll flex-1 overflow-auto rounded-lg px-3 py-2 max-h-[480px]
           text-[10.5px] leading-relaxed font-mono whitespace-pre-wrap
-          text-[var(--ink-dim)] bg-[var(--glass)]"
+          text-[var(--ink-dim)] bg-[var(--glass)] border border-[var(--border)]"
       >
         {markdown}
       </pre>

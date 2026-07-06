@@ -64,8 +64,8 @@ export function XRayPanel() {
 
   return (
     <div
-      className="absolute top-3 right-3 bottom-3 w-[400px] max-w-[calc(100vw-24px)]
-        z-40 glass-strong glass-blur rounded-[20px] flex flex-col fade-up"
+      className="glass-strong absolute top-3 right-3 bottom-3 w-[400px]
+        max-w-[calc(100vw-24px)] z-40 rounded-xl flex flex-col fade-up"
     >
       <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
         <h2 className="text-[14px] font-semibold tracking-tight">Prompt X-Ray</h2>
@@ -82,10 +82,8 @@ export function XRayPanel() {
             type="button"
             data-tour="xray-copy"
             onClick={copy}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full
-              text-[12.5px] font-semibold text-white
-              bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]
-              hover:brightness-110"
+            className="btn-primary h-8 px-3 inline-flex items-center gap-1.5
+              rounded-lg text-[12.5px] font-semibold"
           >
             <CopyIcon size={13} />
             Copy
@@ -140,7 +138,8 @@ export function XRayPanel() {
 
       <pre
         ref={preRef}
-        className="thin-scroll flex-1 overflow-auto mx-2 mb-2 px-3 py-2 rounded-xl
+        className="thin-scroll flex-1 overflow-auto mx-2 mb-2 px-3 py-2 rounded-lg
+          bg-[var(--glass)] border border-[var(--border)]
           text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap
           text-[var(--ink-dim)] select-text"
       >

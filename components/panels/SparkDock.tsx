@@ -76,7 +76,7 @@ export function SparkDock() {
       <button
         type="button"
         onClick={() => setCollapsed(!collapsed)}
-        className="self-start glass-strong glass-blur rounded-full h-9 pl-3 pr-2.5
+        className="glass-strong self-start rounded-lg h-9 pl-3 pr-2.5
           inline-flex items-center gap-1.5 text-[12.5px] font-semibold
           text-[var(--accent)]"
       >
@@ -92,7 +92,7 @@ export function SparkDock() {
         sparks.map((spark) => (
           <div
             key={spark.id}
-            className="glass-card rounded-2xl p-3 fade-up"
+            className="glass-card rounded-xl p-3 fade-up"
           >
             <div className="text-[12.5px] font-medium leading-snug">
               {spark.question}
@@ -107,7 +107,7 @@ export function SparkDock() {
                 <button
                   type="button"
                   onClick={() => setAnswering(spark.id)}
-                  className="h-7 px-3 rounded-full text-[12px] font-semibold
+                  className="h-7 px-3 rounded-lg text-[12px] font-semibold
                     text-[var(--accent)] bg-[var(--accent-soft)]
                     hover:brightness-110"
                 >
@@ -119,7 +119,7 @@ export function SparkDock() {
                     consumed.current.add(spark.id);
                     setSparks((s) => s.filter((q) => q.id !== spark.id));
                   }}
-                  className="h-7 px-2.5 rounded-full text-[12px] font-medium
+                  className="h-7 px-2.5 rounded-lg text-[12px] font-medium
                     text-[var(--ink-faint)] hover:text-[var(--ink)]"
                 >
                   Skip
@@ -153,7 +153,7 @@ function SparkAnswer({
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSubmit(text);
           if (e.key === "Escape") onCancel();
         }}
-        className="w-full rounded-xl bg-[var(--glass)] border border-[var(--glass-border)]
+        className="w-full rounded-lg bg-[var(--glass)] border border-[var(--glass-border)]
           px-2.5 py-2 text-[12.5px] outline-none resize-none
           placeholder:text-[var(--ink-faint)]"
       />
@@ -161,15 +161,14 @@ function SparkAnswer({
         <button
           type="button"
           onClick={() => onSubmit(text)}
-          className="h-7 px-3 rounded-full text-[12px] font-semibold text-white
-            bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]"
+          className="btn-primary h-7 px-3 rounded-lg text-[12px] font-semibold"
         >
           Add card
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="h-7 px-2.5 rounded-full text-[12px] font-medium
+          className="h-7 px-2.5 rounded-lg text-[12px] font-medium
             text-[var(--ink-faint)] hover:text-[var(--ink)]"
         >
           Cancel

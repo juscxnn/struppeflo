@@ -343,9 +343,9 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
         className="absolute inset-0 transition-opacity duration-300"
         style={{
           backgroundImage:
-            "radial-gradient(circle, var(--ink-faint) 1px, transparent 1.5px)",
+            "radial-gradient(circle, var(--border-strong) 1px, transparent 1.5px)",
           backgroundSize: `${GRID_SPACING}px ${GRID_SPACING}px`,
-          opacity: 0.5,
+          opacity: 0.55,
         }}
       />
 
@@ -371,8 +371,8 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
           ref={(el) => {
             ctx.ghostRef.current.chip = el;
           }}
-          className="absolute top-0 left-0 pointer-events-none z-[10000]
-            glass-strong rounded-full px-2.5 py-1 text-[11px] font-medium
+          className="glass-strong absolute top-0 left-0 pointer-events-none z-[10000]
+            rounded-md px-2.5 py-1 text-[11px] font-medium
             text-[var(--accent)] whitespace-nowrap"
           style={{ display: "none" }}
         >

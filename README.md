@@ -2,7 +2,7 @@
 
 **Think in space. Ship in structure.**
 
-A glass-morphism thinking canvas for scattered brains: drop thoughts as cards
+A thinking canvas for scattered brains: drop thoughts as cards
 on an infinite canvas, link them by dragging close, group them into zones —
 then let the board **compile** into a structured, dependency-ordered prompt
 that long-horizon AI agents actually follow.
@@ -56,11 +56,11 @@ npm run dev    # http://localhost:3000
 npm run build  # production build (static landing + studio)
 ```
 
-Stack: Next.js 15 (App Router) · TypeScript strict · Tailwind v4 · zustand
-(+ zundo undo history, persist) · zod. Four runtime dependencies total; the
-canvas is hand-rolled DOM (backdrop-filter glass needs real elements), links
-are one SVG layer, and every drag runs through a single rAF with zero React
-renders mid-gesture.
+Stack: Next.js 15 (App Router) · TypeScript strict · Tailwind v4 · Geist ·
+zustand (+ zundo undo history, persist) · zod. Five runtime dependencies
+total; the canvas is hand-rolled DOM, links are one SVG layer, and every drag
+runs through a single rAF with zero React renders mid-gesture. Design system:
+flat surfaces, hairline borders, monochrome primary (Vercel/n8n direction).
 
 ## Deploy to Vercel
 

@@ -12,11 +12,8 @@ export function Footer() {
         </h2>
         <Link
           href="/studio"
-          className="mt-7 h-12 px-7 inline-flex items-center gap-2 rounded-full
-            text-[15px] font-semibold text-white
-            bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]
-            hover:brightness-110 transition-[filter]
-            shadow-[0_8px_24px_rgba(91,95,242,0.4)]"
+          className="btn-primary mt-7 h-11 px-6 inline-flex items-center gap-2
+            rounded-lg text-[14.5px] font-semibold"
         >
           Open the Studio
           <ArrowRightIcon size={16} />

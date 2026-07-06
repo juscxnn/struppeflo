@@ -68,7 +68,7 @@ export const CardView = memo(function CardView({ cardId }: { cardId: ID }) {
       ref={elRef}
       {...drag}
       data-selected={selected || undefined}
-      className="board-card glass-card group absolute rounded-2xl cursor-grab
+      className="board-card glass-card group absolute rounded-xl cursor-grab
         select-none"
       style={{
         left: card.x,
@@ -82,7 +82,7 @@ export const CardView = memo(function CardView({ cardId }: { cardId: ID }) {
       {tint !== "transparent" && (
         <div
           aria-hidden
-          className="absolute inset-0 rounded-2xl pointer-events-none"
+          className="absolute inset-0 rounded-xl pointer-events-none"
           style={{ background: tint }}
         />
       )}

@@ -3,90 +3,99 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   Design tokens — Struppëflo glass system.
-   Every surface is glass over the aurora; tokens switch wholesale with .dark.
+   Design tokens — Struppëflo flat system (Vercel / n8n direction):
+   flat surfaces, hairline borders, monochrome primary, one restrained accent.
+   Legacy `--glass-*` names are kept as aliases so surface chips keep working.
 --------------------------------------------------------------------------- */
 :root {
-  --bg: #f4f5fb;
-  --ink: #171a24;
-  --ink-dim: rgba(23, 26, 36, 0.6);
-  --ink-faint: rgba(23, 26, 36, 0.38);
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --border: #e4e4e7;
+  --border-strong: #cfcfd4;
 
-  --glass: rgba(255, 255, 255, 0.52);
-  --glass-strong: rgba(255, 255, 255, 0.72);
-  --glass-solid: rgba(250, 251, 255, 0.92);
-  --glass-border: rgba(255, 255, 255, 0.68);
-  --glass-edge: rgba(23, 30, 60, 0.08);
-  --glass-inset: rgba(255, 255, 255, 0.85);
+  --ink: #18181b;
+  --ink-dim: #52525b;
+  --ink-faint: #9d9da6;
 
-  --accent: #5b5ff2;
-  --accent-soft: rgba(91, 95, 242, 0.12);
-  --accent-2: #9059f0;
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.09);
+  --accent-2: #6366f1;
+
+  --primary: #18181b;
+  --primary-contrast: #ffffff;
+  --primary-hover: #3f3f46;
+
   --danger: #e5484d;
 
-  --link-depends: #d9930d;
-  --link-input: #2f8fd4;
-  --link-related: rgba(23, 26, 36, 0.34);
+  --link-depends: #d97706;
+  --link-input: #2f80ed;
+  --link-related: #a7a7b0;
 
-  --shadow-card: 0 1px 2px rgba(20, 25, 60, 0.05), 0 6px 20px rgba(20, 25, 60, 0.08);
-  --shadow-lift: 0 4px 10px rgba(20, 25, 60, 0.1), 0 18px 48px rgba(20, 25, 60, 0.18);
-  --shadow-panel: 0 2px 6px rgba(20, 25, 60, 0.06), 0 16px 48px rgba(20, 25, 60, 0.12);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.14);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.08);
 
-  --aurora-1: rgba(122, 132, 255, 0.5);
-  --aurora-2: rgba(186, 128, 255, 0.42);
-  --aurora-3: rgba(94, 202, 216, 0.4);
-  --aurora-4: rgba(255, 158, 201, 0.34);
+  --glow: rgba(99, 102, 241, 0.09);
 
   --card-tint-default: transparent;
-  --card-tint-amber: rgba(245, 176, 65, 0.14);
-  --card-tint-blue: rgba(77, 157, 224, 0.14);
-  --card-tint-violet: rgba(144, 89, 240, 0.13);
-  --card-tint-teal: rgba(46, 196, 182, 0.14);
-  --card-tint-rose: rgba(240, 98, 146, 0.13);
+  --card-tint-amber: rgba(245, 158, 11, 0.08);
+  --card-tint-blue: rgba(47, 128, 237, 0.07);
+  --card-tint-violet: rgba(99, 102, 241, 0.07);
+  --card-tint-teal: rgba(13, 148, 136, 0.08);
+  --card-tint-rose: rgba(225, 29, 72, 0.06);
 
-  --division-bg: rgba(255, 255, 255, 0.26);
-  --division-border: rgba(23, 30, 60, 0.1);
+  --division-bg: rgba(24, 24, 27, 0.02);
+  --division-border: #e0e0e4;
+
+  /* Legacy aliases (chips, inputs, subtle fills). */
+  --glass: var(--surface-2);
+  --glass-strong: var(--surface);
+  --glass-solid: var(--surface);
+  --glass-border: var(--border);
+  --glass-edge: transparent;
+  --glass-inset: transparent;
 }
 
 .dark {
-  --bg: #07090f;
-  --ink: #edeff8;
-  --ink-dim: rgba(237, 239, 248, 0.62);
-  --ink-faint: rgba(237, 239, 248, 0.36);
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-2: #1e1e1e;
+  --border: #272727;
+  --border-strong: #3a3a3a;
 
-  --glass: rgba(24, 28, 42, 0.55);
-  --glass-strong: rgba(28, 32, 48, 0.74);
-  --glass-solid: rgba(23, 27, 40, 0.94);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-edge: rgba(0, 0, 0, 0.4);
-  --glass-inset: rgba(255, 255, 255, 0.08);
+  --ink: #ededed;
+  --ink-dim: #a3a3a3;
+  --ink-faint: #6b6b6b;
 
-  --accent: #7b7fff;
-  --accent-soft: rgba(123, 127, 255, 0.16);
-  --accent-2: #a97cff;
+  --accent: #818cf8;
+  --accent-soft: rgba(129, 140, 248, 0.13);
+  --accent-2: #818cf8;
+
+  --primary: #ededed;
+  --primary-contrast: #0a0a0a;
+  --primary-hover: #ffffff;
+
   --danger: #ff6369;
 
-  --link-depends: #ebb457;
-  --link-input: #5aa9e6;
-  --link-related: rgba(237, 239, 248, 0.3);
+  --link-depends: #f59e0b;
+  --link-input: #60a5fa;
+  --link-related: #565656;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lift: 0 4px 12px rgba(0, 0, 0, 0.4), 0 20px 56px rgba(0, 0, 0, 0.5);
-  --shadow-panel: 0 2px 8px rgba(0, 0, 0, 0.35), 0 16px 56px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.55);
 
-  --aurora-1: rgba(76, 84, 214, 0.32);
-  --aurora-2: rgba(126, 74, 214, 0.28);
-  --aurora-3: rgba(40, 142, 160, 0.26);
-  --aurora-4: rgba(196, 78, 140, 0.2);
+  --glow: rgba(99, 102, 241, 0.13);
 
-  --card-tint-amber: rgba(245, 176, 65, 0.1);
-  --card-tint-blue: rgba(90, 169, 230, 0.1);
-  --card-tint-violet: rgba(169, 124, 255, 0.1);
-  --card-tint-teal: rgba(46, 196, 182, 0.1);
-  --card-tint-rose: rgba(240, 98, 146, 0.1);
+  --card-tint-amber: rgba(245, 158, 11, 0.09);
+  --card-tint-blue: rgba(96, 165, 250, 0.08);
+  --card-tint-violet: rgba(129, 140, 248, 0.09);
+  --card-tint-teal: rgba(45, 212, 191, 0.08);
+  --card-tint-rose: rgba(251, 113, 133, 0.07);
 
-  --division-bg: rgba(255, 255, 255, 0.045);
-  --division-border: rgba(255, 255, 255, 0.09);
+  --division-bg: rgba(255, 255, 255, 0.02);
+  --division-border: #272727;
 }
 
 @theme inline {
@@ -97,9 +106,10 @@
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
   --color-danger: var(--danger);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
     "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", SFMono-Regular,
+    Menlo, Consolas, monospace;
 }
 
 html,
@@ -117,41 +127,51 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Glass surfaces. `.glass-card` is the only surface with backdrop-filter;
-   `.perf-mode .glass-card` swaps blur for a more opaque fill (see plan §3.6).
+   Surfaces. Class names kept from the earlier glass system; semantics are now
+   flat: solid fill, 1px border, restrained shadow. No backdrop-filter.
 --------------------------------------------------------------------------- */
 .glass {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  box-shadow: inset 0 1px 0 var(--glass-inset), 0 0 0 1px var(--glass-edge),
-    var(--shadow-card);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
 }
 
 .glass-strong {
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-border);
-  box-shadow: inset 0 1px 0 var(--glass-inset), 0 0 0 1px var(--glass-edge),
-    var(--shadow-panel);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
 }
 
 .glass-card {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  box-shadow: inset 0 1px 0 var(--glass-inset), 0 0 0 1px var(--glass-edge),
-    var(--shadow-card);
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-  backdrop-filter: blur(16px) saturate(1.5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.glass-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Blur is gone by design; the class remains for layout compatibility. */
 .glass-blur {
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-  backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: none;
 }
 
 .perf-mode .glass-card {
-  -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  background: var(--glass-solid);
+}
+
+/* Monochrome primary action (black in light mode, white in dark). */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border: 1px solid var(--primary);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 /* Focus rings — keyboard only. */
@@ -162,70 +182,36 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Aurora background — compositor-only transform loops, mismatched durations
-   so the composition never visibly repeats. Frozen under reduced motion.
+   Page backdrop: static. A faint top glow plus a hairline grid that fades out
+   (see PageBackground component). No animation.
 --------------------------------------------------------------------------- */
-@keyframes aurora-drift-1 {
-  0% { transform: translate3d(-8%, -6%, 0) rotate(0deg) scale(1); }
-  33% { transform: translate3d(10%, 8%, 0) rotate(40deg) scale(1.15); }
-  66% { transform: translate3d(-4%, 12%, 0) rotate(80deg) scale(0.95); }
-  100% { transform: translate3d(-8%, -6%, 0) rotate(0deg) scale(1); }
-}
-@keyframes aurora-drift-2 {
-  0% { transform: translate3d(6%, 10%, 0) rotate(0deg) scale(1.1); }
-  50% { transform: translate3d(-12%, -8%, 0) rotate(-60deg) scale(0.9); }
-  100% { transform: translate3d(6%, 10%, 0) rotate(0deg) scale(1.1); }
-}
-@keyframes aurora-drift-3 {
-  0% { transform: translate3d(-10%, 8%, 0) scale(0.95); }
-  40% { transform: translate3d(8%, -10%, 0) scale(1.2); }
-  100% { transform: translate3d(-10%, 8%, 0) scale(0.95); }
-}
-@keyframes aurora-drift-4 {
-  0% { transform: translate3d(12%, -4%, 0) rotate(0deg) scale(1); }
-  50% { transform: translate3d(-6%, 6%, 0) rotate(50deg) scale(1.25); }
-  100% { transform: translate3d(12%, -4%, 0) rotate(0deg) scale(1); }
+.page-glow {
+  background: radial-gradient(
+    720px circle at 50% -120px,
+    var(--glow),
+    transparent 65%
+  );
 }
 
-.aurora-blob {
-  position: absolute;
-  border-radius: 50%;
-  will-change: transform;
-}
-.aurora-blob-1 {
-  width: 65vmax; height: 65vmax; top: -20vmax; left: -15vmax;
-  background: radial-gradient(closest-side, var(--aurora-1) 0%, transparent 70%);
-  animation: aurora-drift-1 37s ease-in-out infinite;
-}
-.aurora-blob-2 {
-  width: 55vmax; height: 55vmax; top: -10vmax; right: -18vmax;
-  background: radial-gradient(closest-side, var(--aurora-2) 0%, transparent 70%);
-  animation: aurora-drift-2 45s ease-in-out infinite;
-}
-.aurora-blob-3 {
-  width: 60vmax; height: 60vmax; bottom: -22vmax; left: 8vmax;
-  background: radial-gradient(closest-side, var(--aurora-3) 0%, transparent 70%);
-  animation: aurora-drift-3 52s ease-in-out infinite;
-}
-.aurora-blob-4 {
-  width: 45vmax; height: 45vmax; bottom: -8vmax; right: -6vmax;
-  background: radial-gradient(closest-side, var(--aurora-4) 0%, transparent 70%);
-  animation: aurora-drift-4 28s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aurora-blob {
-    animation: none !important;
-  }
-  * {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
+.page-grid {
+  background-image: linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    black 10%,
+    transparent 75%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    black 10%,
+    transparent 75%
+  );
+  opacity: 0.5;
 }
 
 /* ---------------------------------------------------------------------------
-   Board interaction styles that are cheaper as classes than inline styles.
+   Board interaction styles.
 --------------------------------------------------------------------------- */
 .board-card {
   contain: layout paint style;
@@ -233,8 +219,8 @@ body {
 
 .board-card[data-dragging="true"] {
   cursor: grabbing;
-  box-shadow: inset 0 1px 0 var(--glass-inset), 0 0 0 1px var(--glass-edge),
-    var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--border-strong);
 }
 
 .division-hover {
@@ -242,8 +228,8 @@ body {
 }
 
 @keyframes proximity-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px var(--accent), 0 0 24px 4px var(--accent-soft); }
-  50% { box-shadow: 0 0 0 3px var(--accent), 0 0 36px 10px var(--accent-soft); }
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent), 0 0 20px 2px var(--accent-soft); }
+  50% { box-shadow: 0 0 0 3px var(--accent), 0 0 32px 8px var(--accent-soft); }
 }
 .proximity-target {
   animation: proximity-pulse 1.1s ease-in-out infinite;
@@ -264,11 +250,11 @@ body {
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .toast-in {
-  animation: toast-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: toast-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes gentle-float {
@@ -280,11 +266,11 @@ body {
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-up {
-  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes ghost-dash {
@@ -295,20 +281,26 @@ body {
   animation: ghost-dash 0.7s linear infinite;
 }
 
-/* Native dialog as glass modal. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Native dialog as flat modal. */
 dialog::backdrop {
-  background: rgba(10, 12, 24, 0.35);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.4);
 }
 .dark dialog::backdrop {
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 /* Thin scrollbars inside panels. */
 .thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: var(--ink-faint);
+  background: var(--border-strong);
   border-radius: 4px;
 }
 .thin-scroll::-webkit-scrollbar-track { background: transparent; }

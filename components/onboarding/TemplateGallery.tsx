@@ -37,8 +37,7 @@ export function TemplateGallery({
           key={t.id}
           type="button"
           onClick={() => onPick(t.id)}
-          className="glass rounded-2xl p-3 text-left transition-transform
-            hover:scale-[1.02] hover:border-[var(--accent)] group"
+          className="glass-card rounded-xl p-3 text-left group"
         >
           <MiniBoardPreview board={previews.get(t.id)!} />
           <div className="mt-2 text-[13px] font-semibold tracking-tight">
@@ -57,14 +56,18 @@ export function MiniBoardPreview({ board }: { board: Board }) {
   const divisions = Object.values(board.divisions);
   const cards = Object.values(board.cards);
   const bounds = boundsOfRects([...divisions, ...cards]);
-  if (!bounds) return <div className="h-20 rounded-xl bg-[var(--glass)]" />;
+  if (!bounds) {
+    return (
+      <div className="h-20 rounded-lg bg-[var(--glass)] border border-[var(--border)]" />
+    );
+  }
   const pad = 40;
 
   return (
     <svg
       aria-hidden
       viewBox={`${bounds.x - pad} ${bounds.y - pad} ${bounds.w + pad * 2} ${bounds.h + pad * 2}`}
-      className="w-full h-20 rounded-xl bg-[var(--glass)]"
+      className="w-full h-20 rounded-lg bg-[var(--glass)] border border-[var(--border)]"
       preserveAspectRatio="xMidYMid meet"
     >
       {divisions.map((d) => (

@@ -71,7 +71,7 @@ export function BrainDumpDialog() {
           placeholder={
             "launch the newsletter\nwho is the first customer?\nfix the pricing page\nidea: partner with communities…"
           }
-          className="mt-3 w-full rounded-xl bg-[var(--glass)] border
+          className="mt-3 w-full rounded-lg bg-[var(--glass)] border
             border-[var(--glass-border)] px-3.5 py-3 text-[13.5px] leading-relaxed
             outline-none resize-none placeholder:text-[var(--ink-faint)]"
         />
@@ -80,9 +80,8 @@ export function BrainDumpDialog() {
             type="button"
             disabled={parsed.length === 0}
             onClick={scatter}
-            className="h-10 px-5 rounded-full text-[13.5px] font-semibold text-white
-              bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]
-              hover:brightness-110 disabled:opacity-45"
+            className="btn-primary h-10 px-5 rounded-lg text-[13.5px]
+              font-semibold disabled:opacity-45"
           >
             Scatter onto board
           </button>

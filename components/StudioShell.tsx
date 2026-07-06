@@ -93,7 +93,7 @@ export function StudioShell() {
             title="Undo (⌘Z)"
             disabled={!undoable}
             onClick={() => boardHistory.undo()}
-            className="w-9 h-9 inline-flex items-center justify-center rounded-full
+            className="w-9 h-9 inline-flex items-center justify-center rounded-lg
               text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]
               disabled:opacity-35"
           >
@@ -105,7 +105,7 @@ export function StudioShell() {
             title="Redo (⇧⌘Z)"
             disabled={!redoable}
             onClick={() => boardHistory.redo()}
-            className="w-9 h-9 inline-flex items-center justify-center rounded-full
+            className="w-9 h-9 inline-flex items-center justify-center rounded-lg
               text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]
               disabled:opacity-35"
           >
@@ -114,7 +114,7 @@ export function StudioShell() {
           <button
             type="button"
             onClick={() => useUIStore.getState().setPaletteOpen(true)}
-            className="h-9 px-3 inline-flex items-center gap-1.5 rounded-full
+            className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg
               text-[12.5px] font-medium text-[var(--ink-dim)]
               hover:bg-[var(--accent-soft)]"
           >

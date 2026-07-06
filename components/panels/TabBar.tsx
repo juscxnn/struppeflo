@@ -30,7 +30,7 @@ export function TabBar() {
         aria-label="New board"
         title="New board"
         onClick={() => useBoardStore.getState().createBoard()}
-        className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-full
+        className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-lg
           text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)]"
       >
         <PlusIcon size={14} />
@@ -70,7 +70,7 @@ function Tab({
           useBoardStore.getState().renameBoard(boardId, e.target.value.trim());
           onRenameDone();
         }}
-        className="shrink-0 h-8 px-3 rounded-full text-[13px] font-medium w-36
+        className="shrink-0 h-8 px-3 rounded-lg text-[13px] font-medium w-36
           bg-[var(--accent-soft)] outline-none"
       />
     );
@@ -78,9 +78,9 @@ function Tab({
 
   return (
     <div
-      className={`shrink-0 group flex items-center h-8 rounded-full text-[13px]
-        font-medium transition-colors cursor-default
-        ${active ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]"}`}
+      className={`shrink-0 group flex items-center h-8 rounded-lg text-[13px]
+        font-medium transition-colors cursor-default border
+        ${active ? "bg-[var(--surface)] border-[var(--border)] text-[var(--ink)] shadow-[var(--shadow-card)]" : "border-transparent text-[var(--ink-dim)] hover:bg-[var(--accent-soft)]"}`}
     >
       <button
         type="button"

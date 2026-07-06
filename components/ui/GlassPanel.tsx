@@ -3,11 +3,9 @@ import type { HTMLAttributes } from "react";
 type Variant = "card" | "panel" | "bar";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  // Cards get backdrop-filter (the perf-managed class); panels/bars are the
-  // stronger chrome surfaces that always blur (there are only ever a few).
-  card: "glass-card rounded-2xl",
-  panel: "glass-strong glass-blur rounded-[20px]",
-  bar: "glass-strong glass-blur rounded-full",
+  card: "glass-card rounded-xl",
+  panel: "glass-strong rounded-xl",
+  bar: "glass-strong rounded-lg",
 };
 
 export function GlassPanel({

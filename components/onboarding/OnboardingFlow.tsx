@@ -26,9 +26,9 @@ export function OnboardingFlow() {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4
-        bg-[rgba(10,12,24,0.35)] backdrop-blur-md"
+        bg-[rgba(0,0,0,0.4)]"
     >
-      <div className="glass-strong glass-blur rounded-3xl w-[680px] max-w-full max-h-[88vh] overflow-y-auto thin-scroll fade-up">
+      <div className="glass-strong rounded-2xl w-[680px] max-w-full max-h-[88vh] overflow-y-auto thin-scroll fade-up">
         <div className="flex items-center gap-1.5 px-6 pt-5">
           {[0, 1, 2].map((i) => (
             <span
@@ -64,9 +64,8 @@ export function OnboardingFlow() {
             <button
               type="button"
               onClick={() => patch({ status: "in_progress", stepIndex: 1 })}
-              className="mt-6 h-11 px-7 rounded-full text-[14.5px] font-semibold text-white
-                bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]
-                hover:brightness-110 shadow-[0_6px_18px_rgba(91,95,242,0.35)]"
+              className="btn-primary mt-6 h-11 px-7 rounded-lg text-[14.5px]
+                font-semibold"
             >
               Get started
             </button>
@@ -91,8 +90,7 @@ export function OnboardingFlow() {
                   key={p}
                   type="button"
                   onClick={() => patch({ persona: p, stepIndex: 2 })}
-                  className="glass rounded-2xl p-4 text-left transition-transform
-                    hover:scale-[1.02]"
+                  className="glass-card rounded-xl p-4 text-left"
                 >
                   <div className="text-[13.5px] font-semibold tracking-tight">
                     {PERSONA_COPY[p].label}
@@ -139,7 +137,7 @@ export function OnboardingFlow() {
                   patch({ stepIndex: 3 });
                   useUIStore.getState().setBrainDumpOpen(true);
                 }}
-                className="h-10 px-4 rounded-full inline-flex items-center gap-2
+                className="h-10 px-4 rounded-lg inline-flex items-center gap-2
                   text-[13px] font-semibold text-[var(--accent)]
                   bg-[var(--accent-soft)] hover:brightness-110"
               >
@@ -149,7 +147,7 @@ export function OnboardingFlow() {
               <button
                 type="button"
                 onClick={() => patch({ stepIndex: 3 })}
-                className="h-10 px-4 rounded-full inline-flex items-center gap-2
+                className="h-10 px-4 rounded-lg inline-flex items-center gap-2
                   text-[13px] font-medium text-[var(--ink-dim)]
                   hover:bg-[var(--accent-soft)]"
               >
@@ -169,18 +167,18 @@ function FloatingCards() {
     <div aria-hidden className="relative h-28 mb-2">
       <div
         className="gentle-float absolute left-1/2 -translate-x-[130%] top-4 w-28 h-16
-          glass-card rounded-xl"
-        style={{ ["--float-rot" as string]: "-6deg", animationDelay: "0s" }}
+          glass-card rounded-lg"
+        style={{ ["--float-rot" as string]: "-4deg", animationDelay: "0s" }}
       />
       <div
         className="gentle-float absolute left-1/2 -translate-x-1/2 top-0 w-28 h-16
-          glass-card rounded-xl"
-        style={{ ["--float-rot" as string]: "2deg", animationDelay: "-1.7s" }}
+          glass-card rounded-lg"
+        style={{ ["--float-rot" as string]: "1deg", animationDelay: "-1.7s" }}
       />
       <div
         className="gentle-float absolute left-1/2 translate-x-[30%] top-6 w-28 h-16
-          glass-card rounded-xl"
-        style={{ ["--float-rot" as string]: "7deg", animationDelay: "-3.4s" }}
+          glass-card rounded-lg"
+        style={{ ["--float-rot" as string]: "5deg", animationDelay: "-3.4s" }}
       />
     </div>
   );

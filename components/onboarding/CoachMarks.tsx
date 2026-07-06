@@ -163,7 +163,7 @@ export function CoachMarks() {
       </svg>
 
       <div
-        className="absolute pointer-events-auto glass-strong glass-blur rounded-2xl
+        className="glass-strong absolute pointer-events-auto rounded-xl
           p-4 w-[300px] fade-up"
         style={cardStyle as React.CSSProperties}
       >

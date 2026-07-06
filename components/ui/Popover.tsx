@@ -66,7 +66,7 @@ export function Popover({
     <div
       ref={ref}
       role="dialog"
-      className="fixed z-[150] glass-strong glass-blur rounded-xl toast-in"
+      className="glass-strong fixed z-[150] rounded-xl toast-in"
       style={pos ? { left: pos.left, top: pos.top } : { visibility: "hidden" }}
     >
       {children}

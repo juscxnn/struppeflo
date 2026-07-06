@@ -45,7 +45,7 @@ function ToolButton({
       data-tour={tour}
       onClick={onClick}
       disabled={busy}
-      className={`relative h-10 px-3 inline-flex items-center gap-1.5 rounded-full
+      className={`relative h-9 px-3 inline-flex items-center gap-1.5 rounded-lg
         text-[12.5px] font-medium transition-colors whitespace-nowrap
         ${active ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--ink-dim)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)]"}
         ${busy ? "opacity-60" : ""}`}
@@ -84,8 +84,8 @@ export function Toolbar() {
 
   return (
     <div
-      className="absolute bottom-5 left-1/2 -translate-x-1/2 z-40
-        glass-strong glass-blur rounded-full p-1.5 flex items-center gap-0.5"
+      className="glass-strong absolute bottom-5 left-1/2 -translate-x-1/2 z-40
+        rounded-xl p-1 flex items-center gap-0.5"
     >
       <ToolButton label="Card" hint="N" onClick={newCard} tour="new-card">
         <PlusIcon size={15} />

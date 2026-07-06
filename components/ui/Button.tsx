@@ -4,10 +4,7 @@ type Variant = "primary" | "ghost" | "danger" | "glass";
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "text-white bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)] " +
-    "shadow-[0_1px_2px_rgba(20,25,60,0.2),0_6px_18px_rgba(91,95,242,0.35)] " +
-    "hover:brightness-110 active:brightness-95",
+  primary: "btn-primary font-semibold",
   ghost:
     "text-[var(--ink)] hover:bg-[var(--accent-soft)] active:bg-[var(--accent-soft)]",
   danger:

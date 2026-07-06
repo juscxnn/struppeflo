@@ -17,7 +17,7 @@ export function TemplatesRow() {
           <Link
             key={t.id}
             href={`/studio?template=${t.id}`}
-            className="glass rounded-2xl p-3 transition-transform hover:scale-[1.03]"
+            className="glass-card rounded-xl p-3"
           >
             <MiniBoardPreview board={t.instantiate()} />
             <div className="mt-2 text-[13px] font-semibold tracking-tight">

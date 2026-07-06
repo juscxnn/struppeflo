@@ -4,7 +4,7 @@ const STEPS = [
   {
     icon: DumpIcon,
     title: "Dump",
-    text: "Paste every loose thought — one per line. Each becomes a glass card scattered on the canvas. No blank-page dread, no premature structure.",
+    text: "Paste every loose thought — one per line. Each becomes a card scattered on the canvas. No blank-page dread, no premature structure.",
   },
   {
     icon: SparklesIcon,
@@ -29,11 +29,11 @@ export function HowItWorks() {
       </p>
       <div className="mt-10 grid sm:grid-cols-3 gap-4">
         {STEPS.map((step, i) => (
-          <div key={step.title} className="glass-card rounded-3xl p-6">
+          <div key={step.title} className="glass-card rounded-xl p-6">
             <div className="flex items-center gap-3">
               <span
-                className="w-10 h-10 rounded-2xl inline-flex items-center justify-center
-                  text-white bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]"
+                className="btn-primary w-10 h-10 rounded-lg inline-flex items-center
+                  justify-center"
               >
                 <step.icon size={18} />
               </span>

@@ -22,11 +22,11 @@ const POINTS = [
 export function LocalFirstSection() {
   return (
     <section className="px-6 py-20 max-w-4xl mx-auto">
-      <div className="glass-strong rounded-[28px] p-8 sm:p-10">
+      <div className="glass-strong rounded-2xl p-8 sm:p-10">
         <div className="flex items-center gap-3">
           <span
-            className="w-11 h-11 rounded-2xl inline-flex items-center justify-center
-              text-white bg-gradient-to-b from-[var(--accent)] to-[var(--accent-2)]"
+            className="btn-primary w-11 h-11 rounded-lg inline-flex items-center
+              justify-center"
           >
             <ShieldIcon size={20} />
           </span>

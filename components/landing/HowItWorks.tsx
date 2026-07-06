@@ -1,51 +1,35 @@
-import { DumpIcon, SparklesIcon, XRayIcon } from "@/components/ui/icons";
-
-const STEPS = [
-  {
-    icon: DumpIcon,
-    title: "Dump",
-    text: "Paste every loose thought — one per line. Each becomes a card scattered on the canvas. No blank-page dread, no premature structure.",
-  },
-  {
-    icon: SparklesIcon,
-    title: "Arrange",
-    text: "Drag cards close to link them. Draw zones to group them. Or hit AI Organize and watch the mess cluster itself — you stay in control, every move undoable.",
-  },
-  {
-    icon: XRayIcon,
-    title: "Compile & run",
-    text: "The board compiles live into a structured prompt: zones become sections, links become execution order. Run it with your own Claude key in-app — or open it in Claude with one click.",
-  },
+const STEPS: Array<[string, string]> = [
+  [
+    "Dump",
+    "Paste everything, one thought per line. Each line becomes a card on the canvas.",
+  ],
+  [
+    "Arrange",
+    "Drag cards into zones and links — or let AI group and connect them for you.",
+  ],
+  [
+    "Run",
+    "The board compiles to a structured prompt. Run it with your own key, or open it in Claude.",
+  ],
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how" className="px-6 py-20 max-w-5xl mx-auto">
-      <h2 className="text-[clamp(26px,4vw,36px)] font-bold tracking-tight text-center">
-        Dump. Arrange. Compile.
-      </h2>
-      <p className="mt-2 text-center text-[14.5px] text-[var(--ink-dim)]">
-        Three moves between a scattered brain and a runnable plan.
-      </p>
-      <div className="mt-10 grid sm:grid-cols-3 gap-4">
-        {STEPS.map((step, i) => (
-          <div key={step.title} className="glass-card rounded-xl p-6">
-            <div className="flex items-center gap-3">
-              <span
-                className="btn-primary w-10 h-10 rounded-lg inline-flex items-center
-                  justify-center"
-              >
-                <step.icon size={18} />
-              </span>
-              <span className="text-[12px] font-semibold text-[var(--ink-faint)]">
-                STEP {i + 1}
-              </span>
+    <section id="how" className="max-w-5xl mx-auto px-6 py-20 scroll-mt-24">
+      <div className="text-[11px] font-semibold tracking-[0.14em] text-[var(--ink-faint)]">
+        HOW IT WORKS
+      </div>
+      <div className="mt-6 grid sm:grid-cols-3 gap-x-10 gap-y-8">
+        {STEPS.map(([title, text], i) => (
+          <div key={title} className="border-t border-[var(--border)] pt-4">
+            <div className="text-[12px] font-mono text-[var(--ink-faint)]">
+              0{i + 1}
             </div>
-            <h3 className="mt-4 text-[17px] font-semibold tracking-tight">
-              {step.title}
+            <h3 className="mt-1.5 text-[15px] font-semibold tracking-tight">
+              {title}
             </h3>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-dim)]">
-              {step.text}
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-dim)]">
+              {text}
             </p>
           </div>
         ))}

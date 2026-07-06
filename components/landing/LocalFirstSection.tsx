@@ -1,51 +1,33 @@
-import { ShieldIcon } from "@/components/ui/icons";
-
-const POINTS = [
-  {
-    title: "Everything stays in your browser",
-    text: "Boards live in localStorage. There is no account, no server, no telemetry.",
-  },
-  {
-    title: "Zero network calls — verifiably",
-    text: "Open the Network tab: after load, nothing moves. A strict Content-Security-Policy makes it a guarantee, not a promise.",
-  },
-  {
-    title: "Your data is portable",
-    text: "Export the whole workspace as JSON anytime; imports are validated, clamped and sanitized before a single byte touches your board.",
-  },
-  {
-    title: "AI is your key, your call",
-    text: "Connect your own Anthropic key and calls go browser → Anthropic directly — the CSP allows exactly that one origin. No key? Everything still works on local heuristics.",
-  },
+const POINTS: Array<[string, string]> = [
+  [
+    "Local-first",
+    "Boards live in this browser. Export JSON anytime; imports are validated and sanitized.",
+  ],
+  [
+    "Zero backend",
+    "A static app. The security policy blocks every outbound call except api.anthropic.com.",
+  ],
+  [
+    "Your key, direct",
+    "AI runs on your own Anthropic key, browser to API. Without one, deterministic local heuristics.",
+  ],
 ];
 
 export function LocalFirstSection() {
   return (
-    <section className="px-6 py-20 max-w-4xl mx-auto">
-      <div className="glass-strong rounded-2xl p-8 sm:p-10">
-        <div className="flex items-center gap-3">
-          <span
-            className="btn-primary w-11 h-11 rounded-lg inline-flex items-center
-              justify-center"
-          >
-            <ShieldIcon size={20} />
-          </span>
-          <h2 className="text-[clamp(22px,3.5vw,30px)] font-bold tracking-tight">
-            Nothing leaves your browser.
-          </h2>
-        </div>
-        <div className="mt-6 grid sm:grid-cols-2 gap-x-8 gap-y-5">
-          {POINTS.map((p) => (
-            <div key={p.title}>
-              <div className="text-[14px] font-semibold tracking-tight">
-                {p.title}
-              </div>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--ink-dim)]">
-                {p.text}
-              </p>
-            </div>
-          ))}
-        </div>
+    <section className="max-w-5xl mx-auto px-6 py-20">
+      <div className="text-[11px] font-semibold tracking-[0.14em] text-[var(--ink-faint)]">
+        PRIVACY
+      </div>
+      <div className="mt-6 grid sm:grid-cols-3 gap-x-10 gap-y-8">
+        {POINTS.map(([title, text]) => (
+          <div key={title} className="border-t border-[var(--border)] pt-4">
+            <h3 className="text-[14px] font-semibold tracking-tight">{title}</h3>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-dim)]">
+              {text}
+            </p>
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -4,15 +4,14 @@ import { TEMPLATES } from "@/lib/templates";
 
 export function TemplatesRow() {
   return (
-    <section id="templates" className="px-6 py-20 max-w-5xl mx-auto">
-      <h2 className="text-[clamp(26px,4vw,36px)] font-bold tracking-tight text-center">
-        Start from a wired board.
-      </h2>
-      <p className="mt-2 text-center text-[14.5px] text-[var(--ink-dim)]">
-        Every template opens pre-linked, so the compile loop clicks in the
-        first thirty seconds.
+    <section id="templates" className="max-w-5xl mx-auto px-6 py-20 scroll-mt-24">
+      <div className="text-[11px] font-semibold tracking-[0.14em] text-[var(--ink-faint)]">
+        TEMPLATES
+      </div>
+      <p className="mt-2 text-[14px] text-[var(--ink-dim)]">
+        Five pre-wired boards. Pick one and start from structure.
       </p>
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {TEMPLATES.map((t) => (
           <Link
             key={t.id}

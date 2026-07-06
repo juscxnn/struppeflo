@@ -14,17 +14,15 @@ export default function LandingPage() {
       <LandingNav />
       <main>
         <Hero />
-        <section id="demo" className="px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-24">
-          <div className="text-center mb-5">
-            <h2 className="text-[clamp(20px,3vw,26px)] font-bold tracking-tight">
-              This demo is the real product.
-            </h2>
-            <p className="mt-1 text-[13.5px] text-[var(--ink-dim)]">
-              Drag a card close to another until it glows, release to link —
-              and watch the compiled prompt rewrite itself.
-            </p>
-          </div>
+        <section
+          id="demo"
+          className="max-w-6xl mx-auto px-4 sm:px-6 scroll-mt-24"
+        >
           <DemoBoard />
+          <p className="mt-2 text-[12px] text-[var(--ink-faint)]">
+            This is the real editor. Drag a card near another to link it — the
+            compiled prompt updates live.
+          </p>
         </section>
         <HowItWorks />
         <ThesisSection />

@@ -6,9 +6,9 @@ import { AuroraBackground } from "@/components/AuroraBackground";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
-  title: "Struppëflo — Think in space. Ship in structure.",
+  title: "Struppëflo — the board is the prompt",
   description:
-    "A thinking canvas that compiles your spatial arrangement of ideas into structured, dependency-ordered context for LLMs. Local-first, no account needed.",
+    "Drop thoughts as cards, drag them together to connect them. Struppëflo compiles the layout into a structured prompt and runs it with Claude. Local-first, no account.",
 };
 
 export const viewport: Viewport = {

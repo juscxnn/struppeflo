@@ -1,27 +1,19 @@
 import Link from "next/link";
-import { ArrowRightIcon } from "@/components/ui/icons";
 
 export function Footer() {
   return (
-    <footer className="px-6 pb-12 pt-8">
-      <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-[clamp(26px,4.5vw,40px)] font-bold tracking-tight leading-tight">
-          Stop prompting.
-          <br />
-          Start arranging.
-        </h2>
+    <footer className="max-w-5xl mx-auto px-6 pb-10 pt-8">
+      <div
+        className="border-t border-[var(--border)] pt-6 flex items-center
+          justify-between text-[12.5px] text-[var(--ink-faint)]"
+      >
+        <span>Struppëflo — think in space, ship in structure.</span>
         <Link
           href="/studio"
-          className="btn-primary mt-7 h-11 px-6 inline-flex items-center gap-2
-            rounded-lg text-[14.5px] font-semibold"
+          className="font-medium text-[var(--ink)] hover:underline"
         >
-          Open the Studio
-          <ArrowRightIcon size={16} />
+          Open Studio →
         </Link>
-        <div className="mt-10 text-[12px] text-[var(--ink-faint)]">
-          Struppëflo — built for scattered brains and long-horizon agents.
-          Local-first, no account, free.
-        </div>
       </div>
     </footer>
   );

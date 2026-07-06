@@ -8,12 +8,12 @@ export function Hero() {
         className="text-[clamp(36px,6vw,56px)] font-semibold tracking-[-0.03em]
           leading-[1.05] max-w-3xl"
       >
-        AI is fast. Your prompt is the bottleneck.
+        Put everything AI needs in one place.
       </h1>
       <p className="mt-5 text-[16px] leading-relaxed text-[var(--ink-dim)] max-w-2xl">
-        Drop your messy thoughts on a canvas. Group them. Struppëflo writes
-        the structured prompt frontier models need to follow through on long
-        tasks. No setup. No account.
+        Drop your messy thoughts on a canvas. Group them by what they
+        belong to. Struppëflo turns the layout into the structured brief
+        frontier models need to actually finish long tasks.
       </p>
 
       <div className="mt-7 flex items-center gap-3">

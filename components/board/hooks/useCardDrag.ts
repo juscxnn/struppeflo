@@ -55,29 +55,70 @@ export function useCardDrag(cardId: ID) {
       const scale = ctx.cameraRef.current.s;
       const dx = (s.current.latestClient.x - s.current.startClient.x) / scale;
       const dy = (s.current.latestClient.y - s.current.startClient.y) / scale;
-      const out = new Map<ID, Rect>();
       const bounds = ctx.policy.bounds;
       const snapEnabled = !s.current.shiftDuringDrag;
       const board = ctx.store.getState().boards[ctx.boardId];
       const candidates = snapEnabled
         ? cardRectsExcluding(board ?? { cards: {} }, new Set(snap.ids))
         : [];
+
+      // Compute tentative positions first.
+      const tentative = new Map<ID, { x: number; y: number }>();
       for (const id of snap.ids) {
         const r = snap.start.get(id);
         if (!r) continue;
-        let x = r.x + dx;
-        let y = r.y + dy;
-        if (snapEnabled) {
-          x = snapToGrid(x, SNAP_GRID);
-          y = snapToGrid(y, SNAP_GRID);
-          const snapped = snapRectToCards(
-            { x, y, w: r.w, h: r.h },
+        tentative.set(id, { x: r.x + dx, y: r.y + dy });
+      }
+
+      // Pick a reference card = leftmost-topmost of the dragged set. The snap
+      // decision is computed ONCE for this card, then applied rigidly to the
+      // whole group. This is what keeps the group's internal layout intact
+      // while still snapping to grid + aligning to other cards.
+      let refId: ID | null = null;
+      let refX = 0;
+      let refY = 0;
+      for (const id of snap.ids) {
+        const t = tentative.get(id);
+        if (!t) continue;
+        if (
+          refId === null ||
+          t.x < refX ||
+          (t.x === refX && t.y < refY)
+        ) {
+          refId = id;
+          refX = t.x;
+          refY = t.y;
+        }
+      }
+      if (refId === null) return null;
+
+      let snappedX = refX;
+      let snappedY = refY;
+      if (snapEnabled) {
+        snappedX = snapToGrid(snappedX, SNAP_GRID);
+        snappedY = snapToGrid(snappedY, SNAP_GRID);
+        const refRect = snap.start.get(refId);
+        if (refRect) {
+          const aligned = snapRectToCards(
+            { x: snappedX, y: snappedY, w: refRect.w, h: refRect.h },
             candidates,
             SNAP_ALIGN_PX,
           );
-          x = snapped.x;
-          y = snapped.y;
+          snappedX = aligned.x;
+          snappedY = aligned.y;
         }
+      }
+
+      const offsetX = snappedX - refX;
+      const offsetY = snappedY - refY;
+
+      const out = new Map<ID, Rect>();
+      for (const id of snap.ids) {
+        const r = snap.start.get(id);
+        const t = tentative.get(id);
+        if (!r || !t) continue;
+        let x = t.x + offsetX;
+        let y = t.y + offsetY;
         if (bounds) {
           x = clamp(x, bounds.x, bounds.x + bounds.w - r.w);
           y = clamp(y, bounds.y, bounds.y + bounds.h - r.h);

@@ -21,7 +21,15 @@ export type AnalyticsEvent =
   | "open_in_claude"
   | "key_connected"
   | "tour_completed"
-  | "waitlist_joined";
+  | "waitlist_joined"
+  | "board_created_blank"
+  | "session_duration"
+  | "result_added_to_board"
+  | "result_split_into_cards"
+  | "run_helpful_yes"
+  | "run_helpful_no"
+  | "telemetry_opt_in"
+  | "telemetry_opt_out";
 
 export function track(
   event: AnalyticsEvent,

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Dialog } from "@/components/ui/Dialog";
 import { Popover, type AnchorRect } from "@/components/ui/Popover";
 import { Kbd } from "@/components/ui/Kbd";
 import { useToast } from "@/components/ui/Toast";
 import { HelpIcon } from "@/components/ui/icons";
 import { useUIStore } from "@/lib/store/uiStore";
+import { useTelemetryOptIn } from "@/lib/useTelemetryOptIn";
+import { track } from "@/lib/analytics";
 import type { Command } from "@/lib/commands";
 
 const SHORTCUTS: Array<{ keys: string[]; what: string }> = [
@@ -34,6 +37,7 @@ export function HelpMenu({ commands }: { commands: Command[] }) {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const helpOpen = useUIStore((s) => s.helpOpen);
   const proximity = useUIStore((s) => s.proximityLinkingEnabled);
+  const [telemetryOn, setTelemetryOn] = useTelemetryOptIn();
   const { toast } = useToast();
 
   const run = (id: string) => {
@@ -97,6 +101,40 @@ export function HelpMenu({ commands }: { commands: Command[] }) {
             >
               Connect Anthropic key…
             </button>
+            <div className="h-px my-1 bg-[var(--glass-border)]" />
+            <button
+              type="button"
+              className={item}
+              onClick={() => {
+                const next = !telemetryOn;
+                setTelemetryOn(next);
+                track(next ? "telemetry_opt_in" : "telemetry_opt_out");
+                toast({
+                  message: next
+                    ? "Sharing structural telemetry. Off any time from here."
+                    : "Telemetry off.",
+                  variant: next ? "success" : "info",
+                });
+              }}
+            >
+              <span className="flex flex-col items-start leading-tight">
+                <span>Help improve Struppëflo</span>
+                <span className="text-[10.5px] text-[var(--ink-faint)] font-normal">
+                  Board structure only · no titles or prompts
+                </span>
+              </span>
+              <span
+                className={`ml-auto text-[11px] font-semibold ${telemetryOn ? "text-[var(--accent)]" : "text-[var(--ink-faint)]"}`}
+              >
+                {telemetryOn ? "ON" : "OFF"}
+              </span>
+            </button>
+            <Link
+              href="/privacy"
+              className="flex items-center px-3 h-8 rounded-lg text-[12px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)] transition-colors"
+            >
+              Privacy details →
+            </Link>
             <div className="h-px my-1 bg-[var(--glass-border)]" />
             <button type="button" className={item} onClick={() => run("export")}>
               Export workspace (JSON)

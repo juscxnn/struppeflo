@@ -12,7 +12,7 @@ import type {
 } from "@/lib/types";
 
 export function instantiate(): Board {
-  const board = newBoard("Product spec");
+  const board = newBoard("Product spec (PRD)");
   const now = board.createdAt;
   let z = 0;
 
@@ -65,7 +65,7 @@ export function instantiate(): Board {
     const l: Link = {
       id: crypto.randomUUID(),
       from: from.id,
-      to: to.id,
+      to: from.id,
       type,
       auto: false,
       createdAt: now,
@@ -73,86 +73,87 @@ export function instantiate(): Board {
     board.links[l.id] = l;
   }
 
-  const problem = division("Problem", 40, 40, 300, 360);
-  const solution = division("Solution", 380, 40, 300, 500);
-  const scope = division("Scope", 720, 40, 300, 584);
-  const risks = division("Risks", 1060, 40, 300, 360);
+  // Five sections: Problem, Users, Requirements, Acceptance Criteria, Open Questions.
+  const problem = division("Problem", 40, 40, 300, 380);
+  const users = division("Users", 380, 40, 300, 380);
+  const reqs = division("Requirements", 720, 40, 300, 460);
+  const acceptance = division("Acceptance Criteria", 1060, 40, 300, 460);
+  const open = division("Open Questions", 720, 540, 640, 220);
 
-  const statement = card(
-    "note",
-    "Problem statement",
-    "Ideas are captured in five tools and planned in none. The cost is re-reading, re-deciding, and dropped commitments.",
-    70, 104, 124, problem.id,
-  );
-  card(
-    "note",
-    "Who hurts most",
-    "Solo builders juggling product, marketing, and support — no PM to consolidate, so the canvas must do it.",
-    70, 244, 116, problem.id,
-  );
-
-  const storyDump = card(
-    "note",
-    "Story: dump, then structure",
-    "As a builder, I paste a brain dump and get typed cards I can drag into zones — planning starts from what's already in my head.",
-    410, 104, 128, solution.id,
-  );
-  card(
-    "note",
-    "Story: compile to prompt",
-    "As a builder, I hit Compile and get a prompt that mirrors the board's spatial order, so my AI executes my plan, not a guess.",
-    410, 248, 128, solution.id,
-  );
-  card(
+  const problemCard = card(
     "insight",
-    "The board IS the spec",
-    "No separate doc to keep in sync: positions, zones, and links carry the semantics. Editing the canvas edits the plan.",
-    410, 392, 124, solution.id, "amber",
+    "Core pain",
+    "Today users hit a wall at X — it costs them Y minutes per session and forces them to do Z manually.",
+    70, 104, 116, problem.id, "amber",
   );
-
   card(
-    "note",
-    "Non-goals (v1)",
-    "No realtime collaboration, no mobile editing, no plugin API. Ship the single-player loop first.",
-    750, 104, 112, scope.id,
-  );
-  const crud = card(
-    "task",
-    "MVP 1: canvas CRUD",
-    "Cards, zones, links, undo. Every other slice builds on this one.",
-    750, 232, 104, scope.id,
-  );
-  const compiler = card(
-    "task",
-    "MVP 2: deterministic compiler",
-    "Same board in, same prompt out — byte for byte. Order comes from spatial reading order plus dependency edges.",
-    750, 352, 120, scope.id,
-  );
-  const dumpImport = card(
-    "task",
-    "MVP 3: brain-dump import",
-    "Paste text, get typed cards scattered on the canvas. One regex pass, no AI required.",
-    750, 488, 112, scope.id,
+    "resource",
+    "Supporting evidence",
+    "Quote, ticket log, or research finding that grounds the pain in something measurable.",
+    70, 240, 132, problem.id,
   );
 
-  const tenX = card(
+  const personaCard = card(
+    "note",
+    "Primary persona",
+    "Engineering lead at a 50-person startup. Hands-on, time-poor, allergic to process theater.",
+    410, 104, 124, users.id,
+  );
+  card(
     "question",
-    "What breaks at 10x usage?",
-    "2,000 cards on one board: does spatial banding still read sanely? Does undo history blow the storage budget?",
-    1090, 104, 124, risks.id, "rose",
-  );
-  card(
-    "note",
-    "Risk: prompts outgrow context",
-    "Big boards may compile past model limits. Mitigation: per-zone compile plus a token estimate in the UI.",
-    1090, 244, 116, risks.id,
+    "Edge case persona",
+    "Who else hits this pain, but with different constraints?",
+    410, 244, 132, users.id,
   );
 
-  link(compiler, crud, "depends_on");
-  link(dumpImport, crud, "depends_on");
-  link(statement, storyDump, "input_to");
-  link(storyDump, dumpImport, "input_to");
-  link(tenX, compiler, "related_to");
+  const req1 = card(
+    "task",
+    "MUST: solve the core flow end-to-end",
+    "Anything less than the full path doesn't ship.",
+    750, 104, 112, reqs.id,
+  );
+  const req2 = card(
+    "task",
+    "MUST: work offline at minimum 24 hours",
+    "Users are on planes.",
+    750, 232, 100, reqs.id,
+  );
+  card(
+    "task",
+    "SHOULD: integrate with the existing export pipeline",
+    "Avoids the second-system effect.",
+    750, 348, 100, reqs.id,
+  );
+
+  const ac1 = card(
+    "task",
+    "AC: user can complete the flow without a tutorial",
+    "Measure with first-task success rate on 5 unmoderated tests.",
+    1090, 104, 124, acceptance.id,
+  );
+  card(
+    "task",
+    "AC: 95th-percentile load time under 800 ms",
+    "On a mid-range Android device over 4G.",
+    1090, 244, 132, acceptance.id,
+  );
+
+  card(
+    "question",
+    "Open: do we ship to one persona first, or both?",
+    "Affects scope, timeline, and the rollout plan.",
+    750, 580, 92, open.id,
+  );
+  card(
+    "question",
+    "Open: what's the cut-line if we slip by 2 weeks?",
+    "Have this conversation before the sprint starts.",
+    1010, 580, 92, open.id,
+  );
+
+  link(req1, problemCard, "depends_on");
+  link(req2, problemCard, "depends_on");
+  link(ac1, req1, "depends_on");
 
   board.maxZ = z;
   return board;

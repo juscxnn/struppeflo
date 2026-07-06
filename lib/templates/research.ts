@@ -12,7 +12,7 @@ import type {
 } from "@/lib/types";
 
 export function instantiate(): Board {
-  const board = newBoard("Research project");
+  const board = newBoard("Research synthesis");
   const now = board.createdAt;
   let z = 0;
 
@@ -73,14 +73,15 @@ export function instantiate(): Board {
     board.links[l.id] = l;
   }
 
-  const question = division("Question", 40, 40, 300, 480);
-  const evidence = division("Evidence", 380, 40, 300, 480);
-  const synthesis = division("Synthesis", 720, 40, 300, 480);
+  const question = division("Question", 40, 40, 300, 460);
+  const evidence = division("Evidence", 380, 40, 300, 460);
+  const themes = division("Themes", 720, 40, 300, 360);
+  const synthesis = division("Synthesis", 1060, 40, 300, 480);
 
   const rq = card(
     "question",
-    "Does spaced repetition improve procedural skill retention?",
-    "The literature is solid for facts. The open claim: does spacing transfer to hands-on skills like debugging or suturing?",
+    "Research question",
+    "Does spaced repetition improve procedural skill retention? The literature is solid for facts. The open claim: does spacing transfer to hands-on skills like debugging or suturing?",
     70, 104, 128, question.id, "violet",
   );
   const h1 = card(
@@ -93,13 +94,13 @@ export function instantiate(): Board {
     "insight",
     "H2: feedback timing dominates",
     "Rival explanation — with immediate feedback, spacing adds little. Any study design must separate these two.",
-    70, 376, 116, question.id,
+    70, 376, 92, question.id,
   );
 
   const meta = card(
     "resource",
     "Cepeda et al. 2006 meta-analysis",
-    "https://doi.org/10.1037/0033-2909.132.3.354 — the declarative-memory baseline. Every effect size gets compared to this anchor.",
+    "https://doi.org/10.1037/0033-2909.132.3.354 — declarative-memory baseline. Every effect size gets compared to this anchor.",
     410, 104, 124, evidence.id,
   );
   const rct = card(
@@ -112,20 +113,33 @@ export function instantiate(): Board {
     "task",
     "Collect disconfirming evidence",
     "Search for null results and failed replications first. Find the three strongest sources that would kill H1 if true.",
-    410, 376, 116, evidence.id,
+    410, 376, 92, evidence.id,
+  );
+
+  const theme1 = card(
+    "insight",
+    "Theme: procedural transfer exists but is fragile",
+    "Where it has been measured, the effect is smaller and more dependent on task design than for declarative memory.",
+    750, 104, 112, themes.id,
+  );
+  card(
+    "insight",
+    "Theme: feedback timing is the confounder",
+    "Most positive results hold only when feedback is delayed. With immediate feedback, the spacing benefit largely disappears.",
+    750, 232, 132, themes.id,
   );
 
   const table = card(
     "task",
     "Build the evidence table",
     "One row per source: population, task type, spacing interval, effect size, risk of bias.",
-    750, 104, 116, synthesis.id,
+    1090, 104, 116, synthesis.id,
   );
   const memo = card(
     "task",
     "Draft the synthesis memo",
     "Two pages: what the evidence supports, what stays open, and the single next experiment worth running.",
-    750, 236, 120, synthesis.id,
+    1090, 236, 120, synthesis.id,
   );
 
   link(h1, rq, "depends_on");

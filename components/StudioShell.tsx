@@ -11,6 +11,7 @@ import { ConnectAIDialog } from "@/components/panels/ConnectAIDialog";
 import { HelpMenu } from "@/components/panels/HelpMenu";
 import { NextActionBar } from "@/components/panels/NextActionBar";
 import { RunPanel } from "@/components/panels/RunPanel";
+import { RunsDrawer } from "@/components/panels/RunsDrawer";
 import { SparkDock } from "@/components/panels/SparkDock";
 import { TabBar } from "@/components/panels/TabBar";
 import { TemplatePickerDialog } from "@/components/panels/TemplatePickerDialog";
@@ -170,6 +171,7 @@ export function StudioShell() {
         <SparkDock />
         <XRayPanel />
         <RunPanel />
+        <RunsDrawer />
         <HelpMenu commands={commands} />
       </main>
 

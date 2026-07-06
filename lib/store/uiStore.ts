@@ -27,6 +27,8 @@ interface UIState {
   templatePickerOpen: boolean;
   /** Show the execution-flow overlay on the board (numbered zones + arrows). */
   showFlow: boolean;
+  /** Past-runs drawer (sliding right-rail). */
+  runsDrawerOpen: boolean;
   /** Which template a board was seeded from (feeds spark questions). */
   boardTemplates: Record<ID, string>;
 
@@ -49,6 +51,7 @@ interface UIState {
   setConnectAIOpen: (open: boolean) => void;
   setTemplatePickerOpen: (open: boolean) => void;
   setShowFlow: (show: boolean) => void;
+  setRunsDrawerOpen: (open: boolean) => void;
   setBoardTemplate: (boardId: ID, templateId: string) => void;
 }
 
@@ -83,6 +86,7 @@ export const useUIStore = create<UIState>()(
       connectAIOpen: false,
       templatePickerOpen: false,
       showFlow: false,
+      runsDrawerOpen: false,
       boardTemplates: {},
 
       setSelection: (ids) => set({ selection: ids }),
@@ -131,6 +135,7 @@ export const useUIStore = create<UIState>()(
       setConnectAIOpen: (open) => set({ connectAIOpen: open }),
       setTemplatePickerOpen: (open) => set({ templatePickerOpen: open }),
       setShowFlow: (show) => set({ showFlow: show }),
+      setRunsDrawerOpen: (open) => set({ runsDrawerOpen: open }),
       setBoardTemplate: (boardId, templateId) =>
         set((s) => ({
           boardTemplates: { ...s.boardTemplates, [boardId]: templateId },

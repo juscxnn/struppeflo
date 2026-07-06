@@ -223,10 +223,18 @@ export const FitIcon = (p: IconProps) => (
 );
 
 export const CompassIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5z" />
-  </Icon>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="16 8 14 14 8 16 10 10 16 8" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const HistoryIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+    <path d="M3 3v5h5" />
+    <path d="M12 7v5l3 2" />
+  </svg>
 );
 
 export const HelpIcon = QuestionIcon;

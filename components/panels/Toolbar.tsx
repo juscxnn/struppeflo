@@ -5,6 +5,7 @@ import {
   DumpIcon,
   FlowIcon,
   FrameIcon,
+  HistoryIcon,
   LinkIcon,
   PlayIcon,
   PlusIcon,
@@ -70,6 +71,7 @@ export function Toolbar() {
   const aiBusy = useUIStore((s) => s.aiBusy);
   const xrayOpen = useUIStore((s) => s.xrayOpen);
   const showFlow = useUIStore((s) => s.showFlow);
+  const runsOpen = useUIStore((s) => s.runsDrawerOpen);
 
   const newCard = () => {
     const state = useBoardStore.getState();
@@ -157,6 +159,14 @@ export function Toolbar() {
         onClick={() => useUIStore.getState().setShowFlow(!showFlow)}
       >
         <FlowIcon size={15} />
+      </ToolButton>
+      <ToolButton
+        label="Runs"
+        hint="Past runs on this board"
+        active={runsOpen}
+        onClick={() => useUIStore.getState().setRunsDrawerOpen(!runsOpen)}
+      >
+        <HistoryIcon size={15} />
       </ToolButton>
 
       <button

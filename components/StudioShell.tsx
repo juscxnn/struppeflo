@@ -34,6 +34,7 @@ import { useUIStore } from "@/lib/store/uiStore";
 import { TEMPLATES, type TemplateId } from "@/lib/templates";
 import { applyTemplate } from "@/lib/workspaceOps";
 import { useSessionTracker } from "@/lib/sessionTracker";
+import { StudioEntry } from "@/components/StudioEntry";
 
 export function StudioShell() {
   // Persisted stores rehydrate client-side before first paint; gate rendering
@@ -97,6 +98,15 @@ export function StudioShell() {
   );
 
   if (!mounted) return <div className="h-dvh" aria-busy />;
+
+  // First-run: empty workspace → template gallery as the entry.
+  const totalCards = Object.values(useBoardStore.getState().boards).reduce(
+    (acc, b) => acc + Object.keys(b.cards).length,
+    0,
+  );
+  if (totalCards === 0) {
+    return <StudioEntry />;
+  }
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">

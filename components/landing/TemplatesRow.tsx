@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { MiniBoardPreview } from "@/components/onboarding/TemplateGallery";
+import { TemplateGallery } from "@/components/onboarding/TemplateGallery";
+import { applyTemplate } from "@/lib/workspaceOps";
 import { TEMPLATES } from "@/lib/templates";
 
 export function TemplatesRow() {
@@ -9,24 +12,18 @@ export function TemplatesRow() {
         TEMPLATES
       </div>
       <p className="mt-2 text-[14px] text-[var(--ink-dim)]">
-        Five pre-wired boards. Pick one and start from structure.
+        Each template is a complete job. Pick one and fill in the cards.
       </p>
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {TEMPLATES.map((t) => (
-          <Link
-            key={t.id}
-            href={`/studio?template=${t.id}`}
-            className="glass-card rounded-xl p-3"
-          >
-            <MiniBoardPreview board={t.instantiate()} />
-            <div className="mt-2 text-[13px] font-semibold tracking-tight">
-              {t.name}
-            </div>
-            <div className="text-[11px] leading-snug text-[var(--ink-dim)]">
-              {t.tagline}
-            </div>
-          </Link>
-        ))}
+      <div className="mt-6">
+        <TemplateGallery onPick={(id) => applyTemplate(id)} compact />
+      </div>
+      <div className="mt-6 text-center">
+        <Link
+          href="/studio"
+          className="text-[13px] font-medium text-[var(--ink-dim)] hover:text-[var(--ink)] transition-colors"
+        >
+          See all {TEMPLATES.length} templates in the Studio →
+        </Link>
       </div>
     </section>
   );

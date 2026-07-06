@@ -31,7 +31,7 @@ import {
 import { boardHistory, useBoardStore } from "@/lib/store/boardStore";
 import { onStorageIssue } from "@/lib/store/storage";
 import { useUIStore } from "@/lib/store/uiStore";
-import { TEMPLATES } from "@/lib/templates";
+import { TEMPLATES, type TemplateId } from "@/lib/templates";
 import { applyTemplate } from "@/lib/workspaceOps";
 import { useSessionTracker } from "@/lib/sessionTracker";
 
@@ -189,7 +189,7 @@ function TemplateBootstrap() {
 
     const template = TEMPLATES.find((t) => t.id === requested);
     if (template) {
-      applyTemplate(template.id);
+      applyTemplate(template.id as TemplateId);
       // They chose a starting point — don't stack the full stepper on top.
       if (useUIStore.getState().onboarding.status === "unseen") {
         useUIStore.getState().patchOnboarding({ status: "skipped" });

@@ -135,6 +135,17 @@ export async function POST(req: Request): Promise<NextResponse> {
       // Per-kind counter, useful for high-level dashboards.
       await kv.incr(`telemetry:counter:${parsed.kind}:${day}`);
       await kv.expire(`telemetry:counter:${parsed.kind}:${day}`, TTL_SECONDS);
+      // All-time totals for the public landing-page counter. The user set
+      // grows monotonically; runs and structures grow as events arrive.
+      await kv.sadd("telemetry:users", parsed.userId);
+      if (parsed.kind === "run") {
+        await kv.incr("telemetry:totals:runs");
+        const fp = parsed.run?.promptFingerprint;
+        if (fp) await kv.sadd("telemetry:prompts", fp);
+      }
+      if (parsed.kind === "structure") {
+        await kv.incr("telemetry:totals:structures");
+      }
     } catch (e) {
       console.error("[telemetry] kv write failed", e);
     }

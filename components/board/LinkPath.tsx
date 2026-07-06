@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useCanvas } from "./CanvasProvider";
 import { LINK_TYPE_META } from "@/lib/constants";
@@ -23,6 +23,7 @@ export const LinkPath = memo(function LinkPath({ linkId }: { linkId: ID }) {
   const arrowRef = useRef<SVGPathElement>(null);
   // Live rects during a drag override the store-settled ones.
   const live = useRef<{ [cardId: ID]: Rect | null }>({});
+  const [fresh, setFresh] = useState(false);
 
   const recompute = useCallback(() => {
     const board = ctx.store.getState().boards[ctx.boardId];
@@ -51,11 +52,18 @@ export const LinkPath = memo(function LinkPath({ linkId }: { linkId: ID }) {
 
   useEffect(() => {
     if (!link) return;
-    return ctx.linkRegistry.subscribe([link.from, link.to], (cardId, rect) => {
+    const off = ctx.linkRegistry.subscribe([link.from, link.to], (cardId, rect) => {
       live.current[cardId] = rect;
       recompute();
     });
-  }, [ctx, link, recompute]);
+    // Pulse the line for ~700ms after creation so users see something happen.
+    setFresh(true);
+    const t = window.setTimeout(() => setFresh(false), 700);
+    return () => {
+      window.clearTimeout(t);
+      off();
+    };
+  }, [ctx, link, link?.createdAt, recompute]);
 
   // Settled state after any render (position commits, type changes, undo).
   useLayoutEffect(() => {
@@ -66,7 +74,7 @@ export const LinkPath = memo(function LinkPath({ linkId }: { linkId: ID }) {
   const meta = LINK_TYPE_META[link.type];
 
   return (
-    <g>
+    <g className={fresh ? "link-new" : undefined}>
       <path
         ref={hitRef}
         fill="none"

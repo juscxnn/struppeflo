@@ -1,16 +1,7 @@
 const POINTS: Array<[string, string]> = [
-  [
-    "Local-first",
-    "Boards live in this browser. Export JSON anytime; imports are validated and sanitized.",
-  ],
-  [
-    "Zero backend",
-    "A static app. The security policy blocks every outbound call except the supported AI provider APIs.",
-  ],
-  [
-    "Your keys, direct",
-    "AI runs on your own provider keys, browser to API. Anthropic, OpenAI, Gemini, MiniMax, or Kimi. Without a key, deterministic local heuristics.",
-  ],
+  ["Local-first", "Boards live in this browser. Export JSON anytime."],
+  ["Zero backend", "A static app. Strict CSP blocks every call except the AI providers you connect."],
+  ["Your keys", "AI runs on your own provider key. Browser to API direct. Struppëflo never sees it."],
 ];
 
 export function LocalFirstSection() {

@@ -3,6 +3,7 @@
 import { useMemo, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
+import { useToast } from "@/components/ui/Toast";
 import { anchorsFor, bezierBetween, pointInRect } from "@/lib/geometry";
 import type { ID } from "@/lib/types";
 
@@ -13,6 +14,7 @@ import type { ID } from "@/lib/types";
  */
 export function useLinkDraw(cardId: ID) {
   const ctx = useCanvas();
+  const { toast } = useToast();
   const s = useRef({
     active: false,
     latestClient: { x: 0, y: 0 },
@@ -90,8 +92,12 @@ export function useLinkDraw(cardId: ID) {
       if (commit && target) {
         const linkId = ctx.store
           .getState()
-          .addLink(ctx.boardId, cardId, target, "related_to", false);
+          .addLink(ctx.boardId, cardId, target, "depends_on", false);
         if (linkId) {
+          toast({
+            message: "Linked. Click the line to change type.",
+            variant: "info",
+          });
           const board = ctx.store.getState().boards[ctx.boardId];
           const a = board?.cards[cardId];
           const b = board?.cards[target];

@@ -1,27 +1,27 @@
-const FEATURES: Array<[string, string]> = [
+const FEATURES = [
   [
-    "Two ways to link",
-    "Drag a card close until it glows, or pull from its edge handle. Click a line to set depends-on or input-to.",
+    "Drag to connect",
+    "Pull a card close to another and release. Lines link them.",
   ],
   [
     "Zones",
-    "Named regions on the canvas. Each one becomes a section in the compiled prompt.",
+    "Draw a named region around a group of cards. Each zone becomes a section in the prompt.",
   ],
   [
     "Prompt X-Ray",
-    "The compiled prompt, live — Markdown or JSON, token estimate, dependency-cycle warnings.",
+    "See the exact prompt your board compiles into. Updates as you drag.",
   ],
   [
     "AI organize",
-    "Twenty half-thoughts become named, grouped zones in one click. Undoable.",
+    "Twenty loose cards become named zones in one click. Undoable.",
   ],
   [
-    "Spark questions",
-    "The board asks what's missing — prerequisites, success criteria. Answers land as cards.",
+    "Five models",
+    "Run with Claude, ChatGPT, Gemini, MiniMax, or Kimi. Same board, your choice.",
   ],
   [
-    "The basics, done right",
-    "Tabs, templates, undo history, ⌘K palette, keyboard shortcuts, JSON export.",
+    "Local-first",
+    "Boards live in this browser. Export JSON anytime.",
   ],
 ];
 

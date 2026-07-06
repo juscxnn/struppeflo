@@ -276,6 +276,16 @@ body {
 @keyframes ghost-dash {
   to { stroke-dashoffset: -16; }
 }
+
+@keyframes link-create {
+  0%   { stroke-opacity: 0; stroke-width: 4; }
+  35%  { stroke-opacity: 1; stroke-width: 4; }
+  100% { stroke-opacity: 1; stroke-width: 1.6; }
+}
+.link-new > path {
+  animation: link-create 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .ghost-link-path {
   stroke-dasharray: 6 5;
   animation: ghost-dash 0.7s linear infinite;

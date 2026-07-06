@@ -1,16 +1,19 @@
-const STEPS: Array<[string, string]> = [
-  [
-    "Dump",
-    "Paste everything, one thought per line. Each line becomes a card on the canvas.",
-  ],
-  [
-    "Arrange",
-    "Drag cards into zones and links — or let AI group and connect them for you.",
-  ],
-  [
-    "Run",
-    "The board compiles to a structured prompt. Run it in-app or hand it off to Claude, ChatGPT, Gemini, MiniMax, or Kimi.",
-  ],
+const STEPS = [
+  {
+    n: "01",
+    title: "Drop your thoughts",
+    body: "One card per idea. Messy is fine. Brain dump a list and each line becomes a card.",
+  },
+  {
+    n: "02",
+    title: "Arrange",
+    body: "Drag cards close to connect them. Drop them inside named zones to group them.",
+  },
+  {
+    n: "03",
+    title: "Run",
+    body: "The board compiles into a structured prompt. Run it with Claude, ChatGPT, Gemini, MiniMax, or Kimi.",
+  },
 ];
 
 export function HowItWorks() {
@@ -20,16 +23,12 @@ export function HowItWorks() {
         HOW IT WORKS
       </div>
       <div className="mt-6 grid sm:grid-cols-3 gap-x-10 gap-y-8">
-        {STEPS.map(([title, text], i) => (
-          <div key={title} className="border-t border-[var(--border)] pt-4">
-            <div className="text-[12px] font-mono text-[var(--ink-faint)]">
-              0{i + 1}
-            </div>
-            <h3 className="mt-1.5 text-[15px] font-semibold tracking-tight">
-              {title}
-            </h3>
+        {STEPS.map((s) => (
+          <div key={s.title} className="border-t border-[var(--border)] pt-4">
+            <div className="text-[12px] font-mono text-[var(--ink-faint)]">{s.n}</div>
+            <h3 className="mt-1.5 text-[15px] font-semibold tracking-tight">{s.title}</h3>
             <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-dim)]">
-              {text}
+              {s.body}
             </p>
           </div>
         ))}

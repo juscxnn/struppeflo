@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCanvas } from "../CanvasProvider";
 import { useUIStore } from "@/lib/store/uiStore";
+import { useToast } from "@/components/ui/Toast";
 import {
   DRAG_THRESHOLD_PX,
   SNAP_ALIGN_PX,
@@ -31,6 +32,7 @@ interface DragSnapshot {
  */
 export function useCardDrag(cardId: ID) {
   const ctx = useCanvas();
+  const { toast } = useToast();
 
   const state = useRef({
     active: false,
@@ -198,8 +200,12 @@ export function useCardDrag(cardId: ID) {
         if (target && snap.ids.length === 1) {
           const linkId = ctx.store
             .getState()
-            .addLink(ctx.boardId, snap.ids[0], target, "related_to", true);
+            .addLink(ctx.boardId, snap.ids[0], target, "depends_on", true);
           if (linkId) {
+            toast({
+              message: "Linked. Click the line to change type.",
+              variant: "info",
+            });
             const board = ctx.store.getState().boards[ctx.boardId];
             const a = board?.cards[snap.ids[0]];
             const b = board?.cards[target];

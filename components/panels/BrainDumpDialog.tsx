@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useBoardStore } from "@/lib/store/boardStore";
 import { useUIStore } from "@/lib/store/uiStore";
 import { parseBrainDump, scatterPositions } from "@/lib/braindump";
+import { runOrganize } from "@/lib/aiActions";
 import { getCanvas } from "@/lib/canvasBridge";
 import { CARD_W } from "@/lib/constants";
 
@@ -40,10 +41,18 @@ export function BrainDumpDialog() {
     });
     setText("");
     close();
-    toast({
-      message: `${parsed.length} thought${parsed.length > 1 ? "s" : ""} scattered — now hit Organize to cluster them.`,
-      variant: "success",
-    });
+    if (parsed.length >= 3) {
+      toast({
+        message: `${parsed.length} thoughts scattered. Want them grouped into zones?`,
+        variant: "success",
+        action: { label: "Organize", onClick: () => void runOrganize(toast) },
+      });
+    } else {
+      toast({
+        message: `${parsed.length} thought${parsed.length > 1 ? "s" : ""} added to the board.`,
+        variant: "success",
+      });
+    }
   };
 
   return (

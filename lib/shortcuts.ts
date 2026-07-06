@@ -29,6 +29,9 @@ export function useGlobalShortcuts(commands: Command[], enabled: boolean) {
         if (ui.paletteOpen) ui.setPaletteOpen(false);
         else if (ui.helpOpen) ui.setHelpOpen(false);
         else if (ui.brainDumpOpen) ui.setBrainDumpOpen(false);
+        else if (ui.connectAIOpen) ui.setConnectAIOpen(false);
+        else if (ui.templatePickerOpen) ui.setTemplatePickerOpen(false);
+        else if (ui.runOpen) ui.setRunOpen(false);
         else if (ui.linkSuggestions.length > 0) ui.setLinkSuggestions([]);
         else if (ui.toolMode !== "select") ui.setToolMode("select");
         else ui.clearSelection();
@@ -66,6 +69,12 @@ export function useGlobalShortcuts(commands: Command[], enabled: boolean) {
         case "l":
         case "L":
           return run("link-selected");
+        case "f":
+        case "F":
+          return run("zoom-fit");
+        case "r":
+        case "R":
+          return run("run-board");
         case "?":
           return run("help");
         case "Delete":

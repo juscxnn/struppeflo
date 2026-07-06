@@ -7,15 +7,15 @@ const POINTS = [
   },
   {
     title: "Zero network calls — verifiably",
-    text: "Open the Network tab: after load, nothing moves. A strict Content-Security-Policy (connect-src 'self') makes it a guarantee, not a promise.",
+    text: "Open the Network tab: after load, nothing moves. A strict Content-Security-Policy makes it a guarantee, not a promise.",
   },
   {
     title: "Your data is portable",
     text: "Export the whole workspace as JSON anytime; imports are validated, clamped and sanitized before a single byte touches your board.",
   },
   {
-    title: "AI backend is opt-in, later",
-    text: "Today's AI features run as deterministic local heuristics. When you connect a backend, it's an explicit switch — never a silent default.",
+    title: "AI is your key, your call",
+    text: "Connect your own Anthropic key and calls go browser → Anthropic directly — the CSP allows exactly that one origin. No key? Everything still works on local heuristics.",
   },
 ];
 

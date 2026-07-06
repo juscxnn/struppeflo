@@ -202,5 +202,32 @@ export const RedoIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const PlayIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 4.8v14.4c0 .8.9 1.3 1.6.9l11-7.2a1 1 0 0 0 0-1.8l-11-7.2A1.05 1.05 0 0 0 7 4.8z" />
+  </Icon>
+);
+
+export const KeyIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="8" cy="15" r="4.5" />
+    <path d="M11.2 11.8 20 3M15.5 7.5 18 10M13 10l2 2" />
+  </Icon>
+);
+
+export const FitIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 4H6a2 2 0 0 0-2 2v3M15 4h3a2 2 0 0 1 2 2v3M9 20H6a2 2 0 0 1-2-2v-3M15 20h3a2 2 0 0 0 2-2v-3" />
+    <rect x="9" y="9.5" width="6" height="5" rx="1.5" />
+  </Icon>
+);
+
+export const CompassIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5z" />
+  </Icon>
+);
+
 export const HelpIcon = QuestionIcon;
 

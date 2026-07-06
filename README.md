@@ -41,11 +41,26 @@ drag cards around. Copy, paste into Claude, keep going.
 - **Tabs, templates, command palette (`⌘K`), undo/redo, export/import JSON,
   dark/light, full keyboard map (`?`).**
 
+## Run it, don't just copy it
+
+The **Run** button closes the loop:
+
+- **No setup:** "Open in Claude" launches claude.ai with the compiled board
+  pre-filled as the prompt.
+- **Bring your own key:** connect an Anthropic API key (Help menu → Connect,
+  or the Run panel) and runs stream directly in-app; results land back on the
+  board as cards. The same key upgrades Organize, Suggest links, and Sparks
+  from local heuristics to real Claude calls — with silent fallback to the
+  heuristics on any failure.
+
+The key is stored in this browser's localStorage and sent only to
+`api.anthropic.com` (browser → Anthropic directly; enforced by the CSP).
+
 ## Local-first security
 
 - Everything lives in `localStorage`. No account, no server, no telemetry.
-- Strict CSP (`connect-src 'self'`) makes "zero network calls" a browser-enforced
-  guarantee — check the Network tab.
+- Strict CSP: `connect-src` allows only `'self'` and `api.anthropic.com` —
+  a browser-enforced guarantee, not a promise.
 - Imports are zod-validated, clamped, and re-keyed before touching the board.
 
 ## Development
@@ -73,15 +88,19 @@ npx vercel        # from this directory, or
 …or push to GitHub and *Import Project* in Vercel. No environment variables
 required for v1.
 
-## Hooking up a real AI backend (v2)
+## Hosted AI backend (optional, later)
 
-The seam is already in place:
+BYO-key already gives real AI with zero backend. If you later want a hosted
+backend (shared keys, usage control, MCP integration), the seam is in place:
 
 1. Implement `app/api/ai/{organize,suggest-links,workflow}/route.ts` with the
    Anthropic API (they currently return `501` with zod-validated bodies).
 2. Set `NEXT_PUBLIC_AI_PROVIDER=api`.
-3. `lib/ai/provider.ts` switches from `MockAIProvider` to `ApiAIProvider`;
-   the UI doesn't change. Board→prompt compilation stays local either way.
+3. `lib/ai/provider.ts` resolves: user key → `AnthropicProvider` (browser),
+   else env flag → `ApiAIProvider` (your backend), else local heuristics.
+
+Exposing boards to agents over MCP is the natural v3: the compiler's JSON
+output (`CompiledBoard`) is already the resource an MCP server would serve.
 
 ## Architecture map
 

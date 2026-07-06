@@ -9,6 +9,8 @@ export interface CanvasApi {
   viewportCenterWorld: () => { x: number; y: number };
   /** Toggle a helper class on the world element (FLIP transitions). */
   setWorldClass: (className: string, on: boolean) => void;
+  /** Frame all content in the viewport. */
+  zoomFit: () => void;
 }
 
 let current: CanvasApi | null = null;

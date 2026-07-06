@@ -16,6 +16,9 @@ const SHORTCUTS: Array<{ keys: string[]; what: string }> = [
   { keys: ["B"], what: "Brain dump" },
   { keys: ["L"], what: "Link two selected cards" },
   { keys: ["drag close"], what: "Link by proximity" },
+  { keys: ["drag + handle"], what: "Draw a link" },
+  { keys: ["R"], what: "Run the board" },
+  { keys: ["F"], what: "Fit board to view" },
   { keys: ["⌘", "."], what: "Prompt X-Ray" },
   { keys: ["⌘", "K"], what: "Command palette" },
   { keys: ["⌘", "Z"], what: "Undo" },
@@ -86,6 +89,13 @@ export function HelpMenu({ commands }: { commands: Command[] }) {
               >
                 {proximity ? "ON" : "OFF"}
               </span>
+            </button>
+            <button
+              type="button"
+              className={item}
+              onClick={() => run("connect-ai")}
+            >
+              Connect Anthropic key…
             </button>
             <div className="h-px my-1 bg-[var(--glass-border)]" />
             <button type="button" className={item} onClick={() => run("export")}>

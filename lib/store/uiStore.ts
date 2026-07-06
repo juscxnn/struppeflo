@@ -22,6 +22,9 @@ interface UIState {
   linkSuggestions: LinkSuggestion[];
   aiBusy: AiJob;
   brainDumpOpen: boolean;
+  runOpen: boolean;
+  connectAIOpen: boolean;
+  templatePickerOpen: boolean;
   /** Which template a board was seeded from (feeds spark questions). */
   boardTemplates: Record<ID, string>;
 
@@ -40,6 +43,9 @@ interface UIState {
   setLinkSuggestions: (s: LinkSuggestion[]) => void;
   setAiBusy: (job: AiJob) => void;
   setBrainDumpOpen: (open: boolean) => void;
+  setRunOpen: (open: boolean) => void;
+  setConnectAIOpen: (open: boolean) => void;
+  setTemplatePickerOpen: (open: boolean) => void;
   setBoardTemplate: (boardId: ID, templateId: string) => void;
 }
 
@@ -70,6 +76,9 @@ export const useUIStore = create<UIState>()(
       linkSuggestions: [],
       aiBusy: null,
       brainDumpOpen: false,
+      runOpen: false,
+      connectAIOpen: false,
+      templatePickerOpen: false,
       boardTemplates: {},
 
       setSelection: (ids) => set({ selection: ids }),
@@ -82,7 +91,8 @@ export const useUIStore = create<UIState>()(
       clearSelection: () => set({ selection: [], editingCardId: null }),
       setEditingCard: (id) => set({ editingCardId: id }),
       setXrayOpen: (open) => {
-        set({ xrayOpen: open });
+        // X-Ray and Run share the right rail — only one open at a time.
+        set(open ? { xrayOpen: true, runOpen: false } : { xrayOpen: false });
         if (open) emit("panel:xray:opened");
       },
       setPaletteOpen: (open) => set({ paletteOpen: open }),
@@ -112,6 +122,10 @@ export const useUIStore = create<UIState>()(
         set({ linkSuggestions: suggestions }),
       setAiBusy: (job) => set({ aiBusy: job }),
       setBrainDumpOpen: (open) => set({ brainDumpOpen: open }),
+      setRunOpen: (open) =>
+        set(open ? { runOpen: true, xrayOpen: false } : { runOpen: false }),
+      setConnectAIOpen: (open) => set({ connectAIOpen: open }),
+      setTemplatePickerOpen: (open) => set({ templatePickerOpen: open }),
       setBoardTemplate: (boardId, templateId) =>
         set((s) => ({
           boardTemplates: { ...s.boardTemplates, [boardId]: templateId },

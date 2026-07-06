@@ -226,7 +226,9 @@ export function useCardDrag(cardId: ID) {
           if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
           beginDrag();
         }
-        if (!s.current.raf) s.current.raf = requestAnimationFrame(tick);
+        // rAF suspends in hidden tabs (headless e2e) — run inline there.
+        if (document.visibilityState === "hidden") tick();
+        else if (!s.current.raf) s.current.raf = requestAnimationFrame(tick);
       },
 
       onPointerUp: (e: ReactPointerEvent<HTMLDivElement>) => {

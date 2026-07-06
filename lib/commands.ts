@@ -109,6 +109,28 @@ export function buildCommands(toast: Toast): Command[] {
       },
     },
     {
+      id: "run-board",
+      label: "Run this board with Claude",
+      keys: ["R"],
+      run: () => useUIStore.getState().setRunOpen(true),
+    },
+    {
+      id: "connect-ai",
+      label: "Connect Anthropic key…",
+      run: () => useUIStore.getState().setConnectAIOpen(true),
+    },
+    {
+      id: "templates",
+      label: "Browse templates…",
+      run: () => useUIStore.getState().setTemplatePickerOpen(true),
+    },
+    {
+      id: "zoom-fit",
+      label: "Fit board to view",
+      keys: ["F"],
+      run: () => getCanvas()?.zoomFit(),
+    },
+    {
       id: "copy-prompt",
       label: "Copy compiled prompt",
       run: async () => {

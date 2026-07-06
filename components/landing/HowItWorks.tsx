@@ -13,8 +13,8 @@ const STEPS = [
   },
   {
     icon: XRayIcon,
-    title: "Compile",
-    text: "The board compiles live into a structured prompt: zones become sections, links become dependencies and execution order. Copy it into Claude and go.",
+    title: "Compile & run",
+    text: "The board compiles live into a structured prompt: zones become sections, links become execution order. Run it with your own Claude key in-app — or open it in Claude with one click.",
   },
 ];
 

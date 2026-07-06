@@ -9,6 +9,8 @@ import { CardView } from "./CardView";
 import { DivisionView } from "./DivisionView";
 import { LinkLayer } from "./LinkLayer";
 import { SuggestionLayer } from "./SuggestionLayer";
+import { ZoomControls } from "./ZoomControls";
+import { DumpIcon, CardStackIcon } from "@/components/ui/icons";
 import { useUIStore } from "@/lib/store/uiStore";
 import {
   CARD_W,
@@ -388,6 +390,65 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
           data-[mode=division]:border-dashed data-[mode=division]:rounded-2xl"
         style={{ display: "none" }}
       />
+
+      {ctx.policy.zoom && <ZoomControls />}
+
+      {ctx.policy.createCards &&
+        cardIds.length === 0 &&
+        divisionIds.length === 0 && <EmptyState />}
+    </div>
+  );
+}
+
+/**
+ * The blank-canvas front door. Nobody should ever stare at an empty void
+ * wondering what to do — the two highest-leverage starts are one click away.
+ */
+function EmptyState() {
+  const openDump = () => useUIStore.getState().setBrainDumpOpen(true);
+  const openTemplates = () => useUIStore.getState().setTemplatePickerOpen(true);
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center
+        pointer-events-none"
+    >
+      <div className="pointer-events-auto text-center max-w-sm px-6 fade-up">
+        <h2 className="text-[19px] font-semibold tracking-tight">
+          What&apos;s on your mind?
+        </h2>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-dim)]">
+          Dump it all here — messy is fine. Organizing is the easy part.
+        </p>
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={openDump}
+            className="btn-primary h-11 rounded-lg inline-flex items-center
+              justify-center gap-2 text-[14px] font-semibold"
+          >
+            <DumpIcon size={16} />
+            Brain dump — one thought per line
+          </button>
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={openTemplates}
+            className="glass h-11 rounded-lg inline-flex items-center
+              justify-center gap-2 text-[13.5px] font-medium
+              text-[var(--ink-dim)] hover:text-[var(--ink)]
+              hover:border-[var(--border-strong)]"
+          >
+            <CardStackIcon size={16} />
+            Start from a template
+          </button>
+        </div>
+        <p className="mt-4 text-[11.5px] text-[var(--ink-faint)]">
+          or double-click anywhere to drop a card · press{" "}
+          <kbd className="font-medium">N</kbd> for a new card
+        </p>
+      </div>
     </div>
   );
 }

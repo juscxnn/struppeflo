@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "geist": "^1.7.2",
     "next": "^15.3.4",
     "react": "^19.1.0",

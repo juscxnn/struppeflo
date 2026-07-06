@@ -7,9 +7,13 @@ import { useStore } from "zustand";
 import { Board } from "@/components/board/Board";
 import { BrainDumpDialog } from "@/components/panels/BrainDumpDialog";
 import { CommandPalette } from "@/components/panels/CommandPalette";
+import { ConnectAIDialog } from "@/components/panels/ConnectAIDialog";
 import { HelpMenu } from "@/components/panels/HelpMenu";
+import { NextActionBar } from "@/components/panels/NextActionBar";
+import { RunPanel } from "@/components/panels/RunPanel";
 import { SparkDock } from "@/components/panels/SparkDock";
 import { TabBar } from "@/components/panels/TabBar";
+import { TemplatePickerDialog } from "@/components/panels/TemplatePickerDialog";
 import { Toolbar } from "@/components/panels/Toolbar";
 import { XRayPanel } from "@/components/panels/XRayPanel";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
@@ -19,7 +23,11 @@ import { Kbd } from "@/components/ui/Kbd";
 import { RedoIcon, UndoIcon } from "@/components/ui/icons";
 import { buildCommands } from "@/lib/commands";
 import { useGlobalShortcuts } from "@/lib/shortcuts";
-import { DEFAULT_POLICY } from "@/lib/constants";
+import {
+  DEFAULT_POLICY,
+  STORAGE_KEY_UI,
+  STORAGE_KEY_WORKSPACE,
+} from "@/lib/constants";
 import { boardHistory, useBoardStore } from "@/lib/store/boardStore";
 import { onStorageIssue } from "@/lib/store/storage";
 import { useUIStore } from "@/lib/store/uiStore";
@@ -35,6 +43,20 @@ export function StudioShell() {
   const { toast } = useToast();
   const commands = useMemo(() => buildCommands(toast), [toast]);
   useGlobalShortcuts(commands, mounted);
+
+  // Multi-tab: when another tab writes the persisted stores, rehydrate so
+  // stale in-memory state here never clobbers newer state on the next write.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY_WORKSPACE) {
+        void useBoardStore.persist.rehydrate();
+      } else if (e.key === STORAGE_KEY_UI) {
+        void useUIStore.persist.rehydrate();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     const doExport = () => void commands.find((c) => c.id === "export")?.run();
@@ -132,13 +154,17 @@ export function StudioShell() {
           history={boardHistory}
         />
         <Toolbar />
+        <NextActionBar />
         <SparkDock />
         <XRayPanel />
+        <RunPanel />
         <HelpMenu commands={commands} />
       </main>
 
       <CommandPalette commands={commands} />
       <BrainDumpDialog />
+      <ConnectAIDialog />
+      <TemplatePickerDialog />
       <Suspense fallback={null}>
         <TemplateBootstrap />
       </Suspense>

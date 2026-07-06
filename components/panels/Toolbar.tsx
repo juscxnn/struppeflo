@@ -6,6 +6,7 @@ import {
   FlowIcon,
   FrameIcon,
   LinkIcon,
+  PlayIcon,
   PlusIcon,
   SparklesIcon,
   XRayIcon,
@@ -148,6 +149,17 @@ export function Toolbar() {
       >
         <XRayIcon size={15} />
       </ToolButton>
+
+      <button
+        type="button"
+        title="Run this board with Claude (R)"
+        onClick={() => useUIStore.getState().setRunOpen(true)}
+        className="btn-primary ml-1 h-9 px-3.5 inline-flex items-center gap-1.5
+          rounded-lg text-[12.5px] font-semibold"
+      >
+        <PlayIcon size={13} />
+        Run
+      </button>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useCanvas } from "./CanvasProvider";
 import { useCardDrag } from "./hooks/useCardDrag";
+import { useLinkDraw } from "./hooks/useLinkDraw";
 import { CardEditor } from "./CardEditor";
 import { useUIStore } from "@/lib/store/uiStore";
 import { Popover, type AnchorRect } from "@/components/ui/Popover";
@@ -27,6 +28,7 @@ export const CardView = memo(function CardView({ cardId }: { cardId: ID }) {
   const selected = useUIStore((s) => s.selection.includes(cardId));
   const editing = useUIStore((s) => s.editingCardId === cardId);
   const drag = useCardDrag(cardId);
+  const linkDraw = useLinkDraw(cardId);
   const elRef = useRef<HTMLDivElement | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
 
@@ -168,6 +170,23 @@ export const CardView = memo(function CardView({ cardId }: { cardId: ID }) {
           </>
         )}
       </div>
+
+      {/* Edge handle: drag from here to another card to draw a link. */}
+      {ctx.policy.createLinks && !editing && (
+        <button
+          type="button"
+          aria-label="Drag to link this card to another"
+          title="Drag to another card to link"
+          {...linkDraw}
+          className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-5 h-5
+            rounded-full border-2 border-[var(--accent)] bg-[var(--surface)]
+            opacity-0 group-hover:opacity-100 transition-opacity
+            cursor-crosshair z-10 flex items-center justify-center
+            text-[var(--accent)] text-[10px] leading-none font-bold"
+        >
+          +
+        </button>
+      )}
 
       {menuAnchor && (
         <CardMenu

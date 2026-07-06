@@ -17,8 +17,16 @@ import {
   PERF_ZOOM_CUTOFF,
   PROXIMITY_DWELL_MS,
   PROXIMITY_THRESHOLD,
+  ZOOM_MAX,
+  ZOOM_MIN,
 } from "@/lib/constants";
-import { anchorsFor, bezierBetween, edgeGapDistance } from "@/lib/geometry";
+import {
+  anchorsFor,
+  bezierBetween,
+  boundsOfRects,
+  clamp,
+  edgeGapDistance,
+} from "@/lib/geometry";
 import type { Camera, ID, InteractionPolicy, Rect } from "@/lib/types";
 
 export type WorkspaceStore = StoreApi<WorkspaceState>;
@@ -196,6 +204,12 @@ export interface CanvasContextValue {
   applyCamera: () => void;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   toScreen: (wx: number, wy: number) => { x: number; y: number };
+  /** Notified after every applyCamera — for zoom readouts, no store churn. */
+  cameraListeners: Set<(cam: Camera) => void>;
+  /** Zoom by a factor around the viewport center. */
+  zoomBy: (factor: number) => void;
+  /** Frame all content in the viewport. */
+  fitToContent: () => void;
 }
 
 const CanvasContext = createContext<CanvasContextValue | null>(null);
@@ -239,6 +253,8 @@ export function CanvasProvider({
       ghostRef,
     );
 
+    const cameraListeners = new Set<(cam: Camera) => void>();
+
     const applyCamera = () => {
       const { tx, ty, s } = cameraRef.current;
       const world = worldRef.current;
@@ -249,6 +265,59 @@ export function CanvasProvider({
         "perf-mode",
         perfByCountRef.current || s < PERF_ZOOM_CUTOFF,
       );
+      cameraListeners.forEach((l) => l(cameraRef.current));
+    };
+
+    const saveCamera = () => {
+      useUIStore.getState().saveCamera(boardId, { ...cameraRef.current });
+    };
+
+    const zoomBy = (factor: number) => {
+      const vp = viewportRef.current;
+      if (!vp) return;
+      const rect = vp.getBoundingClientRect();
+      const px = rect.width / 2;
+      const py = rect.height / 2;
+      const cam = cameraRef.current;
+      const next = clamp(cam.s * factor, ZOOM_MIN, ZOOM_MAX);
+      const k = next / cam.s;
+      cam.tx = px - (px - cam.tx) * k;
+      cam.ty = py - (py - cam.ty) * k;
+      cam.s = next;
+      applyCamera();
+      saveCamera();
+    };
+
+    const fitToContent = () => {
+      const vp = viewportRef.current;
+      const board = store.getState().boards[boardId];
+      if (!vp || !board) return;
+      const bounds = boundsOfRects([
+        ...Object.values(board.cards),
+        ...Object.values(board.divisions),
+      ]);
+      const cam = cameraRef.current;
+      if (!bounds) {
+        cam.tx = 0;
+        cam.ty = 0;
+        cam.s = 1;
+      } else {
+        const rect = vp.getBoundingClientRect();
+        const pad = 80;
+        const s = clamp(
+          Math.min(
+            rect.width / (bounds.w + pad * 2),
+            rect.height / (bounds.h + pad * 2),
+          ),
+          ZOOM_MIN,
+          1,
+        );
+        cam.s = s;
+        cam.tx = rect.width / 2 - (bounds.x + bounds.w / 2) * s;
+        cam.ty = rect.height / 2 - (bounds.y + bounds.h / 2) * s;
+      }
+      applyCamera();
+      saveCamera();
     };
 
     const toWorld = (sx: number, sy: number) => {
@@ -287,6 +356,9 @@ export function CanvasProvider({
       applyCamera,
       toWorld,
       toScreen,
+      cameraListeners,
+      zoomBy,
+      fitToContent,
     };
   }, [store, boardId, policy, history, requestLinkPopover]);
 
@@ -302,6 +374,7 @@ export function CanvasProvider({
       setWorldClass: (className, on) => {
         worldRef.current?.classList.toggle(className, on);
       },
+      zoomFit: () => value.fitToContent(),
     });
   }, [policy.createCards, value]);
 

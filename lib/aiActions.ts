@@ -38,8 +38,9 @@ export async function runOrganize(toast: Toast): Promise<void> {
     getCanvas()?.setWorldClass("organize-settle", true);
     useBoardStore.getState().applyOrganize(board.id, plan);
     setTimeout(() => getCanvas()?.setWorldClass("organize-settle", false), 500);
+    const zoneCount = plan.divisions.length;
     toast({
-      message: `Organized ${Object.keys(plan.assignments).length} cards into ${plan.divisions.length} zones.`,
+      message: `Organized ${Object.keys(plan.assignments).length} cards into ${zoneCount} zone${zoneCount === 1 ? "" : "s"}.`,
       variant: "success",
       action: { label: "Undo", onClick: () => boardHistory.undo() },
     });

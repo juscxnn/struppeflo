@@ -17,7 +17,7 @@ export type TemplateId =
   | "content-pipeline"
   | "triage";
 
-/* Zone specs for each template. Order = execution order. */
+/* -------------------- Zone specs -------------------- */
 
 const GTM_ZONES: ZoneSpec[] = [
   {
@@ -161,15 +161,76 @@ const TRIAGE_ZONES: ZoneSpec[] = [
   },
 ];
 
-function makeRender(zones: ZoneSpec[]) {
-  return (text: string) => ({
-    ...renderStructuredDeliverable(text, zones),
-    toMarkdown: () => "", // not used; see deliverableToMarkdown below
-  });
-}
+/* -------------------- Per-template instructions + system prompts -------------------- */
+/* The instruction is what the user MEANS to do. The system prompt is the
+ * contract that gets the model to produce it well. They are tightly paired
+ * and template-specific. */
 
-// We expose a single render that returns the structured deliverable.
-// The UI uses deliverableToMarkdown for export.
+const GTM_INSTRUCTION =
+  "Write the launch plan I can hand to my team on Monday. Pull from the cards I dropped — use them as the raw material. Be specific to my situation, not generic.";
+
+const GTM_SYSTEM = `You write launch plans for early-stage founders. The user has dropped their actual research, positioning, channels, and launch checklist onto a canvas. Each zone on their board is a section of the plan they need.
+
+Output format (strict):
+- Title: a short, specific name for this launch.
+- Then one markdown heading per zone, in this exact order: ## Research, ## Positioning, ## Channels, ## Launch.
+- Inside each heading, write the section content using the cards in that zone as your source. Use their content verbatim where useful, paraphrase where it improves clarity.
+- For checklist zones (Channels, Launch), use a bulleted list with concrete actions — verbs at the start, owners if mentioned, dates if mentioned.
+- For paragraph zones (Research, Positioning), use prose. Lead with the most important sentence.
+- Be specific to their situation. Reference their actual cards. No generic advice.
+- If a zone has no cards, write one line: "_No notes yet — fill in the cards on the board to flesh this out._"
+- Keep total length tight. A launch plan that nobody reads is useless.`;
+
+const PRD_INSTRUCTION =
+  "Write the PRD my engineering team can start against. Use the cards I dropped on the board as the source. Don't pad it with generic advice.";
+
+const PRD_SYSTEM = `You write product specs for engineers. The user has dropped their problem statement, users, requirements, acceptance criteria, and open questions onto a canvas.
+
+Output format (strict):
+- Title: the feature or product name.
+- Then one markdown heading per zone, in this exact order: ## Problem, ## Users, ## Requirements, ## Acceptance Criteria, ## Open Questions.
+- Inside each heading, write the section using the cards in that zone as your source.
+- Problem + Users: prose. Lead with the most important sentence.
+- Requirements: bulleted checklist. Each line MUST start with MUST, SHOULD, or COULD so the team can sort later.
+- Acceptance Criteria: bulleted checklist. Each item must be testable — describe the observable condition that proves it works.
+- Open Questions: prose paragraph. State each question clearly and call out what decision is blocking on it.
+- Be specific to their product. No filler. No "this is a placeholder" lines.`;
+
+const RESEARCH_INSTRUCTION =
+  "Synthesize the evidence I dropped on the board into a literature synthesis I can share with my co-authors. Be honest about what's weak.";
+
+const RESEARCH_SYSTEM = `You write research syntheses. The user has dropped a research question, evidence sources, themes, and synthesis notes onto a canvas.
+
+Output format (strict):
+- Title: the research question or topic, in plain English.
+- Then one markdown heading per zone, in this exact order: ## Question, ## Evidence, ## Themes, ## Synthesis.
+- Question: prose. State the question, the hypotheses, and what would count as an answer.
+- Evidence: a markdown table with columns Source | Year | Population | Effect / Finding | Risk of bias. One row per evidence card. Keep cells short.
+- Themes: bulleted checklist. Each theme is one pattern that emerges across the evidence.
+- Synthesis: prose. What does the evidence support, what stays open, and the single most informative next experiment.
+- Be honest about weak evidence and disconfirming cases. The user values honesty over false confidence.`;
+
+const CONTENT_INSTRUCTION =
+  "Write this content piece based on the cards I dropped on the board. Don't pad it. Match the tone of my idea card.";
+
+const CONTENT_SYSTEM = `You write content pieces. The user has dropped an idea, outline, draft notes, edits, and publishing plan onto a canvas.
+
+Output format (strict):
+- Title: the working title of the piece.
+- Then one markdown heading per zone, in this exact order: ## Idea, ## Outline, ## Draft, ## Edit, ## Publish.
+- Idea: prose. Capture the angle in two or three sentences.
+- Outline: bulleted checklist. One bullet per section/beat.
+- Draft: prose. Write the first full pass of the piece. Length matches the request.
+- Edit: bulleted checklist. Concrete edits to make — line-level or structural.
+- Publish: bulleted checklist. Where it goes, when, who reviews.
+- Match the tone set by the Idea card. Don't over-write.`;
+
+const TRIAGE_INSTRUCTION =
+  "Look at the loose thoughts I dropped and group them into themes. Suggest names for each group.";
+
+const TRIAGE_SYSTEM = `You triage unstructured brain dumps. The user has dropped a pile of loose cards onto a single zone.
+
+Output format: a single bulleted checklist. Each bullet is one themed group, with the format: "- **Group name** — short description of what binds these together". Use the cards on the board as the only source. Don't invent themes. If everything is one theme, say so.`;
 
 function render(zones: ZoneSpec[]) {
   return (text: string) => renderStructuredDeliverable(text, zones);
@@ -182,6 +243,8 @@ export const TEMPLATES: Template[] = [
     tagline: "From research to launch day, structured.",
     persona: "founder",
     zones: GTM_ZONES,
+    instruction: GTM_INSTRUCTION,
+    systemPrompt: GTM_SYSTEM,
     instantiate: gtm,
     renderOutput: render(GTM_ZONES),
   },
@@ -191,6 +254,8 @@ export const TEMPLATES: Template[] = [
     tagline: "Problem to acceptance criteria, with risks stated.",
     persona: "pm",
     zones: PRD_ZONES,
+    instruction: PRD_INSTRUCTION,
+    systemPrompt: PRD_SYSTEM,
     instantiate: productSpec,
     renderOutput: render(PRD_ZONES),
   },
@@ -200,6 +265,8 @@ export const TEMPLATES: Template[] = [
     tagline: "Question, evidence, themes, conclusions.",
     persona: "researcher",
     zones: RESEARCH_ZONES,
+    instruction: RESEARCH_INSTRUCTION,
+    systemPrompt: RESEARCH_SYSTEM,
     instantiate: research,
     renderOutput: render(RESEARCH_ZONES),
   },
@@ -209,6 +276,8 @@ export const TEMPLATES: Template[] = [
     tagline: "From idea to published piece.",
     persona: "generalist",
     zones: CONTENT_ZONES,
+    instruction: CONTENT_INSTRUCTION,
+    systemPrompt: CONTENT_SYSTEM,
     instantiate: contentPipeline,
     renderOutput: render(CONTENT_ZONES),
   },
@@ -218,6 +287,8 @@ export const TEMPLATES: Template[] = [
     tagline: "A messy pile, ready for one-click AI Organize.",
     persona: "generalist",
     zones: TRIAGE_ZONES,
+    instruction: TRIAGE_INSTRUCTION,
+    systemPrompt: TRIAGE_SYSTEM,
     instantiate: triage,
     renderOutput: render(TRIAGE_ZONES),
   },
@@ -234,6 +305,3 @@ export function getTemplate(id: TemplateId): Template | undefined {
 }
 
 export { deliverableToMarkdown };
-
-// quiet "unused" for makeRender helper if not used.
-void makeRender;

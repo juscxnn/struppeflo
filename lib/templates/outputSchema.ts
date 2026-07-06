@@ -56,6 +56,18 @@ export interface Template {
   persona: Persona;
   /** The zone structure the user fills in. Order = execution order. */
   zones: ZoneSpec[];
+  /**
+   * One-line specific instruction injected into the prompt. This is the
+   * template's actual "what should the model do" — not a generic placeholder.
+   * Example: "Produce a launch plan with positioning, audience, channels,
+   * timeline, and risks. Use the cards in each zone as your source material."
+   */
+  instruction: string;
+  /**
+   * System-prompt contract for this template. Tells the model what format
+   * and depth to use. Tailored per template.
+   */
+  systemPrompt: string;
   /** Returns a board seeded with the template's zones and example cards. */
   instantiate: () => Board;
   /** Parses the model's output text into the structured deliverable shape. */

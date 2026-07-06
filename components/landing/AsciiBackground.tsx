@@ -11,11 +11,9 @@ import { useEffect, useRef } from "react";
  * Reduced-motion: a static grid, no animation, no cursor interaction.
  */
 
-const CELL = 14; // px
-const CHARS_LOW = "·.,'";
-const CHARS_MID = "•o+x";
-const CHARS_HIGH = "*#@";
-const POOL = (CHARS_LOW + CHARS_MID + CHARS_HIGH).split("");
+const CELL = 22; // px — sparser, calmer
+const CHARS = "·.,·";
+const POOL = CHARS.split("");
 
 interface Particle {
   baseX: number;
@@ -23,17 +21,11 @@ interface Particle {
   vx: number;
   vy: number;
   ch: string;
+  phase: number;
 }
 
 function randomChar(): string {
   return POOL[Math.floor(Math.random() * POOL.length)];
-}
-
-function pickCharBySpeed(speed: number): string {
-  if (speed < 0.4) return CHARS_LOW[Math.floor(Math.random() * CHARS_LOW.length)];
-  if (speed < 1.2)
-    return CHARS_MID[Math.floor(Math.random() * CHARS_MID.length)];
-  return CHARS_HIGH[Math.floor(Math.random() * CHARS_HIGH.length)];
 }
 
 export function AsciiBackground() {
@@ -63,9 +55,10 @@ export function AsciiBackground() {
           particles.push({
             baseX: x * CELL,
             baseY: y * CELL,
-            vx: 0.15 + Math.random() * 0.1,
-            vy: 0.05 + Math.random() * 0.05,
+            vx: 0.06 + Math.random() * 0.04,
+            vy: 0.02 + Math.random() * 0.02,
             ch: randomChar(),
+            phase: Math.random() * Math.PI * 2,
           });
         }
       }
@@ -110,13 +103,12 @@ export function AsciiBackground() {
       const cx = ctxRef.current;
       if (!cx) return;
       cx.clearRect(0, 0, width, height);
-      cx.font = `${CELL - 2}px ui-monospace, "SF Mono", "Menlo", monospace`;
+      cx.font = `${CELL - 6}px ui-monospace, "SF Mono", "Menlo", monospace`;
       cx.textBaseline = "middle";
       cx.textAlign = "center";
-      cx.fillStyle = "rgba(120, 120, 130, 0.18)";
 
       for (const p of particles) {
-        // Base drift, slightly diagonal.
+        // Base drift, very slow and slightly diagonal.
         p.baseX += p.vx;
         p.baseY += p.vy;
 
@@ -124,42 +116,33 @@ export function AsciiBackground() {
         if (p.baseX > width + CELL) p.baseX -= width + CELL;
         if (p.baseY > height + CELL) p.baseY -= height + CELL;
 
-        // Cursor force: radial push away from cursor, falloff with distance.
+        // Subtle radial nudge toward cursor. Tiny radius, small force — this
+        // is meant to be a breath of life, not a particle engine.
         let dx = 0;
         let dy = 0;
-        let speed = Math.hypot(p.vx, p.vy);
         if (!reduced && mouseX > -9000) {
           const rx = p.baseX - mouseX;
           const ry = p.baseY - mouseY;
           const dist = Math.hypot(rx, ry);
-          const radius = 140;
+          const radius = 70;
           if (dist < radius && dist > 1) {
-            const force = (1 - dist / radius) * 0.9;
-            dx = (rx / dist) * force * 8;
-            dy = (ry / dist) * force * 8;
-            // Add momentum to vx/vy so the character accelerates.
-            p.vx += (rx / dist) * force * 0.02;
-            p.vy += (ry / dist) * force * 0.02;
-            // Slow them back down so we don't blow up.
-            p.vx *= 0.96;
-            p.vy *= 0.96;
-            // Pick a more agitated char to reflect the disturbance.
-            speed = Math.hypot(p.vx, p.vy);
-            p.ch = pickCharBySpeed(speed);
+            const force = (1 - dist / radius) * 0.25;
+            dx = (rx / dist) * force * 2;
+            dy = (ry / dist) * force * 2;
           }
         }
 
         const x = p.baseX + dx;
         const y = p.baseY + dy;
-        // Slight color modulation: characters near cursor glow brighter.
-        let alpha = 0.18;
+        // Faint baseline alpha + tiny proximity bump. Never gets bright.
+        let alpha = 0.07;
         if (!reduced && mouseX > -9000) {
           const d = Math.hypot(x - mouseX, y - mouseY);
-          if (d < 180) {
-            alpha = 0.18 + (1 - d / 180) * 0.5;
+          if (d < 90) {
+            alpha = 0.07 + (1 - d / 90) * 0.08;
           }
         }
-        cx.fillStyle = `rgba(160, 160, 175, ${alpha.toFixed(3)})`;
+        cx.fillStyle = `rgba(140, 140, 160, ${alpha.toFixed(3)})`;
         cx.fillText(p.ch, x, y);
       }
 
@@ -168,13 +151,15 @@ export function AsciiBackground() {
 
     if (reduced) {
       // Render one frame statically.
-      ctx.clearRect(0, 0, width, height);
-      ctx.font = `${CELL - 2}px ui-monospace, "SF Mono", "Menlo", monospace`;
-      ctx.textBaseline = "middle";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(120, 120, 130, 0.18)";
+      const cx = ctxRef.current;
+      if (!cx) return;
+      cx.clearRect(0, 0, width, height);
+      cx.font = `${CELL - 6}px ui-monospace, "SF Mono", "Menlo", monospace`;
+      cx.textBaseline = "middle";
+      cx.textAlign = "center";
+      cx.fillStyle = "rgba(140, 140, 160, 0.07)";
       for (const p of particles) {
-        ctx.fillText(p.ch, p.baseX, p.baseY);
+        cx.fillText(p.ch, p.baseX, p.baseY);
       }
     } else {
       raf = requestAnimationFrame(tick);

@@ -15,10 +15,25 @@ export type StreamEvent =
   | { kind: "text"; delta: string }
   | { kind: "thinking"; delta: string };
 
+export interface StreamOptions {
+  /**
+   * Override the per-provider system prompt with a template-specific one.
+   * When a template declares its own contract (e.g., "you write launch plans
+   * with these sections"), it goes here. Falls back to the generic
+   * per-provider prompt when not provided.
+   */
+  templateSystemPrompt?: string;
+}
+
 /**
  * Per-model system prompt contract. Tailored for each provider's strengths.
  */
-function systemPromptFor(provider: ProviderId, model: string): string {
+function systemPromptFor(
+  provider: ProviderId,
+  model: string,
+  override?: string,
+): string {
+  if (override) return override;
   if (provider === "anthropic") {
     return `You execute plans that arrive as compiled boards from a spatial planning tool.
 
@@ -130,11 +145,13 @@ export async function openInModel(
 export async function* streamRun(
   prompt: string,
   signal: AbortSignal,
+  options: StreamOptions = {},
 ): AsyncGenerator<StreamEvent> {
   const cfg = getAIConfig();
   const provider = modelProvider(cfg.model);
   const model = cfg.model;
   const spec = getModel(model);
+  const override = options.templateSystemPrompt;
 
   if (provider === "anthropic") {
     const client = await anthropicClient();
@@ -146,7 +163,7 @@ export async function* streamRun(
         ...(model === "claude-opus-4-8"
           ? { thinking: { type: "adaptive" as const } }
           : {}),
-        system: systemPromptFor("anthropic", model),
+        system: systemPromptFor("anthropic", model, override),
         messages: [{ role: "user", content: prompt }],
       },
       { signal },
@@ -175,7 +192,7 @@ export async function* streamRun(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPromptFor("gemini", model) }] },
+        systemInstruction: { parts: [{ text: systemPromptFor("gemini", model, override) }] },
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: 64000 },
       }),
@@ -239,7 +256,7 @@ export async function* streamRun(
       stream: true,
       max_tokens: 64000,
       messages: [
-        { role: "system", content: systemPromptFor(provider, model) },
+        { role: "system", content: systemPromptFor(provider, model, override) },
         { role: "user", content: prompt },
       ],
     }),

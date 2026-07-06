@@ -78,6 +78,21 @@ export function RunPanel() {
   const abortRef = useRef<AbortController | null>(null);
   const outRef = useRef<HTMLDivElement | null>(null);
 
+  // Resolve the template for this board, if any.
+  const template = useMemo(() => {
+    if (!board) return null;
+    const tplId = boardTemplates[board.id];
+    return tplId ? getTemplate(tplId as never) ?? null : null;
+  }, [board, boardTemplates]);
+
+  // Reset instruction to the template's when the run panel opens or the
+  // template changes — gives the user the right starting instruction
+  // without forcing them to retype it.
+  useEffect(() => {
+    if (open && template) setInstruction(template.instruction);
+    else if (open) setInstruction(DEFAULT_RUN_INSTRUCTION);
+  }, [open, template]);
+
   useEffect(() => {
     if (!open) {
       abortRef.current?.abort();
@@ -91,13 +106,6 @@ export function RunPanel() {
       outRef.current.scrollTop = outRef.current.scrollHeight;
     }
   }, [textOutput, state]);
-
-  // Resolve the template for this board, if any.
-  const template = useMemo(() => {
-    if (!board) return null;
-    const tplId = boardTemplates[board.id];
-    return tplId ? getTemplate(tplId as never) ?? null : null;
-  }, [board, boardTemplates]);
 
   if (!open || !board) return null;
 
@@ -131,7 +139,9 @@ export function RunPanel() {
     const t0 = Date.now();
     const collected: string[] = [];
     try {
-      for await (const evt of streamRun(prompt, controller.signal)) {
+      for await (const evt of streamRun(prompt, controller.signal, {
+        templateSystemPrompt: template?.systemPrompt,
+      })) {
         if (evt.kind === "text") {
           collected.push(evt.delta);
           setTextOutput((prev) => prev + evt.delta);

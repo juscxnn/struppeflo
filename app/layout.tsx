@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { AuroraBackground } from "@/components/AuroraBackground";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body>
         <AuroraBackground />
         <ToastProvider>{children}</ToastProvider>
+        <Analytics />
       </body>
     </html>
   );

@@ -7,13 +7,49 @@ import { copyText } from "./clipboard";
 import type { Board } from "./types";
 
 export const DEFAULT_RUN_INSTRUCTION =
-  "Execute this plan: work through the sections in the suggested order and " +
-  "produce the deliverable this board describes. Where an open question " +
-  "blocks you, make a sensible assumption and state it explicitly.";
+  "Produce the deliverable this board describes, worked through to a " +
+  "finished, usable state.";
+
+/**
+ * System prompt for in-app runs. Teaches the model the board format once,
+ * sets the behavioral contract (deliverable, not a plan; assumptions over
+ * stalling), and pins the output shape.
+ */
+export const RUN_SYSTEM_PROMPT = `You execute plans that arrive as compiled boards from a spatial planning tool.
+
+How to read the board:
+- <section> blocks are ordered by dependency, then by the author's spatial layout.
+- <task> is work to do. <note> is context. <insight> is a conclusion to build on. <resource> is reference material. <open_question> is an unresolved decision.
+- depends_on and inputs attributes plus <execution_order> give the intended sequence. Follow it unless it is clearly wrong.
+
+How to work:
+- Produce the deliverable itself, not a plan for producing it and not a restatement of the board.
+- Work through tasks in execution order. Treat notes, insights and resources as real constraints, not decoration.
+- For each <open_question>, make the most sensible assumption in one line and keep going. Never stall on missing information.
+- Match depth to the work: substantive tasks get substance; do not pad thin ones to look thorough.
+
+Output:
+- Lead with the deliverable. No preamble about what you are going to do.
+- Plain markdown, concrete and specific.
+- If you made assumptions, list them briefly at the end under "Assumptions".`;
 
 export function buildRunPrompt(board: Board, instruction: string): string {
   const { markdown } = compileBoard(board);
-  return `${markdown}\n\n---\n\n${instruction.trim() || DEFAULT_RUN_INSTRUCTION}`;
+  return `${markdown}\n\n<instructions>\n${instruction.trim() || DEFAULT_RUN_INSTRUCTION}\n</instructions>`;
+}
+
+/**
+ * The claude.ai handoff can't set a system prompt, so fold a one-line
+ * version of the contract into the user message instead.
+ */
+export function buildHandoffPrompt(board: Board, instruction: string): string {
+  const { markdown } = compileBoard(board);
+  const task = instruction.trim() || DEFAULT_RUN_INSTRUCTION;
+  return (
+    `${markdown}\n\n<instructions>\n${task}\n` +
+    `Work through the sections in the suggested execution order. Produce the deliverable itself, not a plan. ` +
+    `For each open question, state a sensible assumption in one line and continue.\n</instructions>`
+  );
 }
 
 /** claude.ai chokes on very long ?q= URLs — past this we copy + open instead. */
@@ -52,6 +88,7 @@ export async function* streamRun(
       model,
       max_tokens: 64000,
       ...thinkingFor(model),
+      system: RUN_SYSTEM_PROMPT,
       messages: [{ role: "user", content: prompt }],
     },
     { signal },

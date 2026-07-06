@@ -11,11 +11,13 @@ import {
   subscribeAIConfig,
 } from "@/lib/aiConfig";
 import {
+  buildHandoffPrompt,
   buildRunPrompt,
   DEFAULT_RUN_INSTRUCTION,
   openInClaude,
   streamRun,
 } from "@/lib/run";
+import { track } from "@/lib/analytics";
 import { copyText } from "@/lib/clipboard";
 import { getCanvas } from "@/lib/canvasBridge";
 import { CARD_W, MAX_BODY } from "@/lib/constants";
@@ -79,11 +81,13 @@ export function RunPanel() {
     setState("running");
     setOutput("");
     setError("");
+    track("run_started", { cards: cardCount });
     try {
       for await (const delta of streamRun(prompt, controller.signal)) {
         setOutput((prev) => prev + delta);
       }
       setState("done");
+      track("run_completed", { cards: cardCount });
     } catch (e) {
       if (controller.signal.aborted) {
         setState(output ? "done" : "idle");
@@ -101,7 +105,8 @@ export function RunPanel() {
   const stop = () => abortRef.current?.abort();
 
   const handOff = async () => {
-    const prompt = buildRunPrompt(board, instruction);
+    const prompt = buildHandoffPrompt(board, instruction);
+    track("open_in_claude", { cards: cardCount });
     const how = await openInClaude(prompt);
     toast({
       message:

@@ -139,6 +139,7 @@ export function createWorkspaceSlice(
         boardOrder: [...s.boardOrder, board.id],
         activeBoardId: board.id,
       }));
+      emit("board:created", { boardId: board.id });
       return board.id;
     },
 
@@ -182,6 +183,7 @@ export function createWorkspaceSlice(
 
     setActiveBoard: (id) => {
       set((s) => (s.boards[id] ? { activeBoardId: id } : s));
+      emit("board:opened", { boardId: id });
     },
 
     /* ------------------------------- cards ------------------------------ */
@@ -222,11 +224,12 @@ export function createWorkspaceSlice(
           },
         };
       });
-      emit("card:created", { boardId, cardId: card.id });
+      emit("card:created", { boardId, cardId: card.id, cardType: card.type });
       return card.id;
     },
 
     updateCard: (boardId, cardId, patch) => {
+      let nextType: string | null = null;
       set((s) => {
         const b = s.boards[boardId];
         const card = b?.cards[cardId];
@@ -239,6 +242,7 @@ export function createWorkspaceSlice(
           id: card.id,
           updatedAt: Date.now(),
         };
+        nextType = next.type;
         return {
           boards: {
             ...s.boards,
@@ -246,6 +250,9 @@ export function createWorkspaceSlice(
           },
         };
       });
+      if (nextType !== null) {
+        emit("card:updated", { boardId, cardId, cardType: nextType });
+      }
     },
 
     setCardHeight: (boardId, cardId, h) => {
@@ -278,6 +285,7 @@ export function createWorkspaceSlice(
           boards: { ...s.boards, [boardId]: { ...b, cards, links } },
         };
       });
+      ids.forEach((cardId) => emit("card:deleted", { boardId, cardId }));
     },
 
     commitMove: (boardId, moves) => {
@@ -307,6 +315,7 @@ export function createWorkspaceSlice(
           boards: { ...s.boards, [boardId]: { ...b, cards, maxZ: z } },
         };
       });
+      moves.forEach((m) => emit("card:moved", { boardId, cardId: m.id }));
     },
 
     /* ----------------------------- divisions ---------------------------- */
@@ -334,7 +343,6 @@ export function createWorkspaceSlice(
         const b = s.boards[boardId];
         if (!b) return s;
         const divisions = { ...b.divisions, [division.id]: division };
-        // Cards whose centers fall inside adopt the new division immediately.
         const cards = { ...b.cards };
         for (const card of Object.values(cards)) {
           const next = divisionForCard(card, divisions);
@@ -349,6 +357,7 @@ export function createWorkspaceSlice(
           },
         };
       });
+      emit("division:created", { boardId, divisionId: division.id });
       return division.id;
     },
 
@@ -392,7 +401,6 @@ export function createWorkspaceSlice(
           const card = cards[m.id];
           if (card) cards[m.id] = { ...card, x: m.x, y: m.y };
         }
-        // Membership can change for members and bystanders alike.
         for (const card of Object.values(cards)) {
           const next = divisionForCard(card, divisions);
           if (next !== card.divisionId) {
@@ -403,6 +411,7 @@ export function createWorkspaceSlice(
           boards: { ...s.boards, [boardId]: { ...b, divisions, cards } },
         };
       });
+      emit("division:resized", { boardId, divisionId: id });
     },
 
     deleteDivision: (boardId, id) => {
@@ -411,7 +420,6 @@ export function createWorkspaceSlice(
         if (!b || !b.divisions[id]) return s;
         const divisions = { ...b.divisions };
         delete divisions[id];
-        // Cards survive; memberships recompute (nested divisions may adopt).
         const cards = { ...b.cards };
         for (const card of Object.values(cards)) {
           const next = divisionForCard(card, divisions);
@@ -423,6 +431,7 @@ export function createWorkspaceSlice(
           boards: { ...s.boards, [boardId]: { ...b, divisions, cards } },
         };
       });
+      emit("division:deleted", { boardId, divisionId: id });
     },
 
     /* ------------------------------- links ------------------------------ */
@@ -460,25 +469,35 @@ export function createWorkspaceSlice(
           },
         };
       });
-      emit("link:created", { boardId, linkId: link.id, auto });
+      emit("link:created", {
+        boardId,
+        linkId: link.id,
+        linkType: link.type,
+      });
       return link.id;
     },
 
     updateLink: (boardId, id, patch) => {
+      let nextType: string | null = null;
       set((s) => {
         const b = s.boards[boardId];
         const link = b?.links[id];
         if (!b || !link) return s;
+        const next = { ...link, ...patch, id: link.id };
+        nextType = next.type;
         return {
           boards: {
             ...s.boards,
             [boardId]: {
               ...b,
-              links: { ...b.links, [id]: { ...link, ...patch, id: link.id } },
+              links: { ...b.links, [id]: next },
             },
           },
         };
       });
+      if (nextType !== null) {
+        emit("link:updated", { boardId, linkId: id, linkType: nextType });
+      }
     },
 
     deleteLink: (boardId, id) => {
@@ -489,6 +508,7 @@ export function createWorkspaceSlice(
         delete links[id];
         return { boards: { ...s.boards, [boardId]: { ...b, links } } };
       });
+      emit("link:deleted", { boardId, linkId: id });
     },
 
     /* -------------------------------- bulk ------------------------------- */
@@ -542,6 +562,7 @@ export function createWorkspaceSlice(
 
     resetWorkspace: () => {
       set(() => defaultWorkspace());
+      emit("board:reset");
     },
   });
 }

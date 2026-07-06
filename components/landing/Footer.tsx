@@ -7,9 +7,23 @@ export function Footer() {
         className="border-t border-[var(--border)] pt-6 flex items-center
           justify-between text-[12.5px] text-[var(--ink-faint)] flex-wrap gap-3"
       >
-        <div className="flex items-center gap-4">
-          <span>Struppëflo — think in space, ship in structure.</span>
-          <span className="hidden sm:inline">AGPL-3.0</span>
+        <div className="flex items-center gap-4 flex-wrap">
+          <span>made with <span aria-hidden>♡</span></span>
+          <span>·</span>
+          <span>
+            An{" "}
+            <a
+              href="https://attiteud.com"
+              target="_blank"
+              rel="noopener"
+              className="font-medium text-[var(--ink-dim)] hover:text-[var(--ink)] transition-colors"
+            >
+              Attiteud
+            </a>{" "}
+            project
+          </span>
+          <span>·</span>
+          <span>AGPL-3.0</span>
         </div>
         <div className="flex items-center gap-4">
           <Link

@@ -1,14 +1,34 @@
 /**
- * Tiny typed event bus. Store actions emit; the coach-marks tour (and any
- * other passive observer) subscribes. Deliberately global and dependency-free.
+ * Tiny typed event bus. Store actions emit; the coach-marks tour, the
+ * session tracker, and any other passive observer subscribe. Deliberately
+ * global and dependency-free.
+ *
+ * Event payload shape is loose (`unknown`) so any caller can pass whatever
+ * the listener expects. Type the listeners themselves.
  */
 export type AppEvent =
   | "card:created"
+  | "card:updated"
+  | "card:deleted"
+  | "card:moved"
   | "link:created"
+  | "link:updated"
+  | "link:deleted"
+  | "division:created"
+  | "division:resized"
+  | "division:deleted"
+  | "board:created"
+  | "board:opened"
+  | "board:reset"
   | "panel:xray:opened"
-  | "compile:copied";
+  | "compile:copied"
+  | "run:started"
+  | "run:completed"
+  | "run:quality";
 
-type Handler = (detail?: unknown) => void;
+export type AppEventDetail = unknown;
+
+type Handler = (detail?: AppEventDetail) => void;
 
 const handlers = new Map<AppEvent, Set<Handler>>();
 
@@ -22,7 +42,7 @@ export function on(event: AppEvent, handler: Handler): () => void {
   return () => set.delete(handler);
 }
 
-export function emit(event: AppEvent, detail?: unknown): void {
+export function emit(event: AppEvent, detail?: AppEventDetail): void {
   handlers.get(event)?.forEach((h) => {
     try {
       h(detail);

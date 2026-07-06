@@ -19,7 +19,7 @@ Both routes validate input with zod and return JSON errors. Neither route stores
 
 ## Reporting a vulnerability
 
-Email **security@struppeflo.app** with:
+Email **justin@attiteud.com** with:
 
 1. A description of the issue and the impact.
 2. Reproduction steps or a proof of concept.

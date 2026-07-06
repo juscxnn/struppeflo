@@ -31,8 +31,17 @@ import {
 } from "@/components/ui/icons";
 import { getModel, PROVIDER_LABELS } from "@/lib/ai/models";
 import { parseOutputAsCards } from "@/lib/outputParser";
-import { sendTelemetry } from "@/lib/telemetry";
-import { buildRunOutcomePayload, computeBoardStructure } from "@/lib/structure";
+import {
+  buildRunOutcomePayload,
+  computeBoardStructure,
+  sendTelemetry,
+  structureFingerprint,
+} from "@/lib/telemetry";
+import {
+  rememberRunPrompt,
+  reportRunQuality,
+  reportRunStarted,
+} from "@/lib/sessionTracker";
 
 type RunState = "idle" | "running" | "done" | "error";
 
@@ -100,7 +109,11 @@ export function RunPanel() {
       provider,
       model: aiConfig.model,
     });
-    sendTelemetry({ structure: computeBoardStructure(board) });
+    reportRunStarted();
+    const fp = await structureFingerprint(board);
+    const structure = computeBoardStructure(board, fp);
+    sendTelemetry({ kind: "structure", structure });
+    rememberRunPrompt(fp);
     const t0 = Date.now();
     try {
       for await (const evt of streamRun(prompt, controller.signal)) {
@@ -127,7 +140,7 @@ export function RunPanel() {
         durationMs,
         status: "ok",
       });
-      sendTelemetry({ run: outcome });
+      sendTelemetry({ kind: "run", run: outcome });
     } catch (e) {
       if (controller.signal.aborted) {
         setState(textOutput ? "done" : "idle");
@@ -184,6 +197,7 @@ export function RunPanel() {
     if (id) {
       useUIStore.getState().setSelection([id]);
       track("result_added_to_board", { cards: cardCount });
+      reportRunQuality({ addedToBoard: true });
       toast({
         message:
           textOutput.length > MAX_BODY
@@ -234,6 +248,7 @@ export function RunPanel() {
         sections: parsed.length,
         new_cards: ids.length,
       });
+      reportRunQuality({ splitIntoCards: true });
       toast({
         message: `${ids.length} cards across ${parsed.length} sections added under "Run output".`,
         variant: "success",
@@ -248,6 +263,7 @@ export function RunPanel() {
       provider,
       model: aiConfig.model,
     });
+    reportRunQuality({ rating });
   };
 
   return (

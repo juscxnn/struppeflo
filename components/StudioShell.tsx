@@ -33,6 +33,7 @@ import { onStorageIssue } from "@/lib/store/storage";
 import { useUIStore } from "@/lib/store/uiStore";
 import { TEMPLATES } from "@/lib/templates";
 import { applyTemplate } from "@/lib/workspaceOps";
+import { useSessionTracker } from "@/lib/sessionTracker";
 
 export function StudioShell() {
   // Persisted stores rehydrate client-side before first paint; gate rendering
@@ -43,6 +44,7 @@ export function StudioShell() {
   const { toast } = useToast();
   const commands = useMemo(() => buildCommands(toast), [toast]);
   useGlobalShortcuts(commands, mounted);
+  useSessionTracker();
 
   // Multi-tab: when another tab writes the persisted stores, rehydrate so
   // stale in-memory state here never clobbers newer state on the next write.

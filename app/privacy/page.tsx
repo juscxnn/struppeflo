@@ -18,7 +18,7 @@ const TIERS = [
     subtitle: "Event names and small counts only. No content.",
     rows: [
       ["Page views and demo interactions", "Anonymous, via Vercel Analytics."],
-      ["Product events", "brain_dump, organize, suggest_links, workflow_generated, template_used, xray_opened, prompt_copied, run_started, run_completed, open_in_claude, key_connected, tour_completed, waitlist_joined."],
+      ["Product events", "brain_dump, organize, suggest_links, workflow_generated, template_used, xray_opened, prompt_copied, run_started, run_completed, open_in_model, key_connected, tour_completed, waitlist_joined, board_created_blank, result_added_to_board, result_split_into_cards, run_helpful_yes, run_helpful_no, telemetry_opt_in, telemetry_opt_out."],
       ["Per-run telemetry", "Provider, model, card count, input/output tokens, duration, status. Not the prompt content or output text."],
       ["Outcome feedback", "Thumbs up/down on run results. Optional one-line note (sent only when you submit it)."],
     ],
@@ -27,18 +27,21 @@ const TIERS = [
     name: "Tier 2 — Opt-in, structural only",
     subtitle: "Toggle in Help → Help improve Struppëflo. Default off. Never collects titles, bodies, or prompts.",
     rows: [
-      ["Board structure", "Card type histogram, zone count, link type histogram, dependency depth."],
-      ["Per-run outcomes", "Provider, model, prompt fingerprint (SHA-256 of compiled markdown, not the markdown itself), output length, thumbs rating."],
-      ["Session shape", "How long you used the app, which features you used (event names only)."],
+      ["Board structure", "Card type histogram, zone count, link type histogram, dependency depth. Plus a sha256 fingerprint of the structural shape (not the text)."],
+      ["Edit stream", "Each add/edit/remove event on cards, links, zones — with ms since the previous edit. Struggle signal: lots of edits before a run often means the prompt was hard to compose."],
+      ["Per-run outcomes", "Provider, model, prompt fingerprint (sha256 of compiled markdown), output length, thumbs rating."],
+      ["Run quality", "Did the user re-run the same prompt? Did they add the result to the board or split it into cards?"],
+      ["Session", "Anonymous user id, start/end timestamps, edit count, run count, thumbs distribution, final structure."],
     ],
   },
   {
     name: "What we never see",
     subtitle: "Even with Tier 2 enabled.",
     rows: [
-      ["Card titles, bodies, or prompt text", "Never collected at any tier."],
+      ["Card titles, bodies, or prompt text", "Never collected at any tier. Server route's zod schema rejects these fields."],
       ["Your AI provider keys", "Browser → provider direct; Struppëflo's servers never see them."],
       ["Your output text from runs", "Streamed in your browser; we only see length and your thumbs rating."],
+      ["Your identity", "The 'user id' is a random 24-char hex stored in your own localStorage. We don't see your name, email, IP, or anything else."],
     ],
   },
 ];
@@ -97,13 +100,13 @@ export default function PrivacyPage() {
 
         <section className="mt-12">
           <h2 className="text-[18px] font-semibold tracking-tight">
-            Retention and access
+            Where the data lives
           </h2>
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-dim)]">
-            Tier 1 events are retained by our analytics provider for the
-            standard Vercel Analytics window. Tier 2 telemetry is retained
-            for 90 days and is used only in aggregate to inform product
-            decisions. We do not sell or share either tier with third parties.
+            Tier 1 events are retained by Vercel Analytics for the standard
+            Vercel window. Tier 2 telemetry is stored in Vercel KV (Redis),
+            keyed by date, with a 90-day TTL. We do not sell or share either
+            tier with third parties.
           </p>
         </section>
 
@@ -112,10 +115,10 @@ export default function PrivacyPage() {
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-dim)]">
             Questions, deletion requests, or concerns:{" "}
             <a
-              href="mailto:privacy@struppeflo.app"
+              href="mailto:justin@attiteud.com"
               className="font-medium text-[var(--ink)] underline"
             >
-              privacy@struppeflo.app
+              justin@attiteud.com
             </a>
             .
           </p>

@@ -7,6 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useCanvas } from "./CanvasProvider";
 import { CardView } from "./CardView";
 import { DivisionView } from "./DivisionView";
+import { FlowLayer } from "./FlowLayer";
 import { LinkLayer } from "./LinkLayer";
 import { SuggestionLayer } from "./SuggestionLayer";
 import { ZoomControls } from "./ZoomControls";
@@ -362,6 +363,7 @@ export function BoardCanvas({ className = "" }: { className?: string }) {
           ))}
         </div>
         <LinkLayer />
+        <FlowLayer />
         <div>
           {cardIds.map((id) => (
             <CardView key={id} cardId={id} />

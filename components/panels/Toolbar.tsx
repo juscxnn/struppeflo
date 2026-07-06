@@ -69,6 +69,7 @@ export function Toolbar() {
   const toolMode = useUIStore((s) => s.toolMode);
   const aiBusy = useUIStore((s) => s.aiBusy);
   const xrayOpen = useUIStore((s) => s.xrayOpen);
+  const showFlow = useUIStore((s) => s.showFlow);
 
   const newCard = () => {
     const state = useBoardStore.getState();
@@ -148,6 +149,14 @@ export function Toolbar() {
         onClick={() => useUIStore.getState().setXrayOpen(!xrayOpen)}
       >
         <XRayIcon size={15} />
+      </ToolButton>
+      <ToolButton
+        label="Flow"
+        hint="Show execution order on the board"
+        active={showFlow}
+        onClick={() => useUIStore.getState().setShowFlow(!showFlow)}
+      >
+        <FlowIcon size={15} />
       </ToolButton>
 
       <button
